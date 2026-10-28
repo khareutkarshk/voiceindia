@@ -1,0 +1,520 @@
+---
+import { Image } from 'astro:assets';
+import logoDark from '../assets/voiceindia-logo-on-dark.png';
+import '../styles/site.css';
+
+const site = 'https://voiceindia.si/';
+const title = 'Voice India Super Intelligence for Banking and NBFCs';
+const description =
+  'Connect customer, loan and conversation context to governed decisions and permitted action. Explore Voice India Super Intelligence for banking and NBFC collections workflows.';
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': `${site}#org`,
+      name: 'Voice India',
+      url: 'https://www.voiceindia.ai/',
+      logo: `${site}favicon.png`,
+      email: 'tabassum.farheen@voiceindia.ai',
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${site}#site`,
+      url: site,
+      name: 'Voice India Super Intelligence',
+      inLanguage: 'en-IN',
+      publisher: { '@id': `${site}#org` },
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Voice India Super Intelligence',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'On premise, private cloud or hybrid deployment',
+      description,
+      url: site,
+      publisher: { '@id': `${site}#org` },
+      audience: { '@type': 'BusinessAudience', name: 'Banks and NBFCs' },
+      featureList: [
+        'Customer Intelligence',
+        'Collections Intelligence',
+        'Conversation Intelligence',
+        'Portfolio Intelligence',
+        'Risk and Compliance Intelligence',
+        'Operations Intelligence',
+      ],
+    },
+  ],
+};
+
+const layers = [
+  { name: 'Enterprise data and events', text: 'Core banking, LMS, CRM, payment status, telephony, conversations and approved knowledge sources.' },
+  { name: 'Context and memory', text: 'Identity resolution where authorised, account timeline, interaction memory, event history, retrieval and a knowledge graph where implemented.' },
+  { name: 'Intelligence', text: 'Rules and policies, predictive models, retrieval, reasoning, next best action and specialist agents.' },
+  { name: 'Orchestration and the policy gate', text: 'Permissions, approvals, workflow routing, human escalation and API calls. Every proposed action is checked against permissions and policy before it reaches a channel or system.' },
+  { name: 'Channels and systems of action', text: 'Voice agents, messaging, human agents, collection workflows, CRM and LMS updates. Payment or system status is verified before an outcome is marked complete.' },
+  { name: 'Governance and outcome monitoring', text: 'Access controls, PII controls, audit records, evaluation, operational monitoring and verified outcome feedback.' },
+];
+
+const steps = [
+  {
+    tab: 'Context',
+    title: 'Everything about the account, in one place.',
+    body: 'The repayment timeline, recent contacts and previous outcomes flow into the intelligence layer.',
+    list: ['Repayment timeline: instalments due, 23 days past due', 'Recent contacts: 4 attempts, the last one answered', 'Previous outcome: asked for a call after salary credit'],
+  },
+  {
+    tab: 'Diagnosis',
+    title: 'Three reasons it could be stuck.',
+    body: 'A reasoned set of explanations. Hypotheses to test, not facts.',
+    list: ['A: salary credit arrives after the due date', 'B: a question from an earlier call was never answered', 'C: the contact details are out of date'],
+  },
+  {
+    tab: 'Action',
+    title: 'One recommended next action.',
+    body: 'Call after the customer’s stated salary credit, within permitted contact hours, in Tamil. Priority medium. Based on the customer’s own request and recorded preference. B and C are kept on record, not deleted.',
+    list: [],
+  },
+  {
+    tab: 'Conversation',
+    title: 'The call, in her language.',
+    body: '',
+    chat: [
+      ['Customer', 'I cannot pay before the salary comes in. Can someone call me after that?'],
+      ['SI agent', 'Understood. I will note a call after your salary credit, in Tamil. Is that date window suitable?'],
+      ['Customer', 'Yes, after the first week is fine.'],
+      ['SI agent', 'Thank you. The follow-up is recorded. No payment commitment has been made on this call.'],
+    ],
+    list: [],
+  },
+  {
+    tab: 'Resolution',
+    title: 'Recorded, scheduled, not assumed.',
+    body: 'Disposition recorded: callback requested. Next permitted action scheduled: a follow-up call in Tamil. Collections system updated. Payment status: not confirmed.',
+    list: [],
+  },
+  {
+    tab: 'Feedback',
+    title: 'The outcome goes back to the core.',
+    body: 'The eventual outcome enters the measurement layer and is compared with the recommendation. Strategy changes are evaluated and approved before they are promoted. Nothing changes itself silently.',
+    list: [],
+  },
+];
+
+const engines = [
+  { id: 'collections', name: 'Collections Intelligence', line: 'Ranks accounts and recommends the next permitted recovery action.', inputs: 'Delinquency status, repayment history, contact attempts, previous commitments, approved recovery options.', support: 'Ranks accounts, proposes hypotheses for stalled recovery and compares permitted next actions.', output: 'A recommended next action with its supporting evidence, for agent or workflow use.' },
+  { id: 'customer', name: 'Customer Intelligence', line: 'One governed view of each customer.', inputs: 'Permitted customer and account records, interaction history, consent and contact preferences.', support: 'Builds a single contextual view that downstream workflows can read within their access rights.', output: 'A governed context summary for the workflow in question.' },
+  { id: 'conversation', name: 'Conversation Intelligence', line: 'Context that carries across voice and digital.', inputs: 'Transcripts and event streams from voice and digital channels, plus account context.', support: 'Identifies objections and intent, carries context between channels and flags when a person should take over.', output: 'Conversation summaries, captured follow-ups and handoff signals.' },
+  { id: 'portfolio', name: 'Portfolio Intelligence', line: 'Where recovery is slowing, and why.', inputs: 'Aggregated portfolio, bucket, product, channel and team data.', support: 'Compares segments and highlights where outcomes diverge from the agreed baseline.', output: 'Manager views of patterns and candidate explanations.' },
+  { id: 'risk', name: 'Risk and Compliance Intelligence', line: 'Every action held to approved rules.', inputs: 'Approved rules and policies, workflow events, action and approval records.', support: 'Checks proposed actions against configured rules and marks exceptions.', output: 'Exception flags, retained evidence and review routing.' },
+  { id: 'operations', name: 'Operations Intelligence', line: 'Where work piles up, in plain language.', inputs: 'Queue, handling time, workflow and manual effort data.', support: 'Explains where work accumulates and proposes process changes for evaluation.', output: 'Plain-language explanations and recommended improvements for review.' },
+];
+
+const measures = [
+  ['Recovery', 'Collected amount, recovery rate and net recovery cost.'],
+  ['Commitment quality', 'Promise-to-pay rate, kept and broken promise rates.'],
+  ['Contact efficiency', 'Contact rate, right-party contact and attempts per resolution.'],
+  ['Customer experience', 'Dispute resolution time, complaint rate and repeat contact.'],
+  ['Operations', 'Human handling time, manual effort and manager review time.'],
+  ['Governance', 'Policy exceptions, action approval rate and audit completeness.'],
+];
+
+const pillars = [
+  ['Data boundaries', 'The institution’s approved data access and processing rules apply to every workflow.'],
+  ['Policy-bound action', 'Only the actions permitted by the workflow and the authority level are exposed.'],
+  ['Human review', 'Exceptions and higher-impact decisions route to authorised staff.'],
+  ['Audit trail', 'Inputs, decisions, approvals and outcomes are recorded under your retention policy.'],
+  ['Evaluation', 'Quality, failure modes and consistency are tested before any change is promoted.'],
+  ['Data minimisation', 'Each workflow reads only the fields it is permitted to use. PII never goes where policy forbids.'],
+];
+
+const connectors = ['Core banking and lending', 'Loan management and collections', 'CRM and case management', 'Telephony and communications', 'Payments and reconciliation', 'Enterprise data and knowledge'];
+
+const modes = {
+  premise: { label: 'On premise', text: 'For workloads deployed within the institution’s own environment. No data crosses the boundary.' },
+  private: { label: 'Private cloud', text: 'The SI runtime runs on approved private infrastructure. Data crosses only through one defined, approved flow.' },
+  hybrid: { label: 'Hybrid', text: 'Systems of record stay with the institution, and the runtime spans both sides. Crossing is single-file, through one opening you define.' },
+};
+---
+<!doctype html>
+<html lang="en-IN" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={site} />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#0e120f" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={site} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content="Understand every customer in context. Predict the next best action. Coordinate AI and human teams, with institutional control." />
+    <meta property="og:image" content={`${site}og.png`} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Voice India Super Intelligence — the intelligence layer for banks and NBFCs." />
+    <meta property="og:locale" content="en_IN" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content="Customer context, governed decisions and permitted action for banking and NBFC collections workflows." />
+    <meta name="twitter:image" content={`${site}og.png`} />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="preload" href="/fonts/anek-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <script is:inline>document.documentElement.classList.replace('no-js','js')</script>
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <canvas id="field" aria-hidden="true"></canvas>
+
+    <header class="nav">
+      <div class="wrap">
+        <a href="#top" class="brand" aria-label="Voice India Super Intelligence, back to top">
+          <Image src={logoDark} alt="Voice India" width={160} height={40} loading="eager" fetchpriority="high" />
+        </a>
+        <nav aria-label="Sections">
+          <ul>
+            <li><a href="#loop">How it works</a></li>
+            <li><a href="#journey">Account 1048</a></li>
+            <li><a href="#trust">Control</a></li>
+            <li><a href="#modules">Engines</a></li>
+          </ul>
+        </nav>
+        <a class="btn btn-sm press" href="#connect">Request a demo</a>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- 1. The call -->
+      <section id="top" class="sec hero" data-state="hero" aria-labelledby="h-hero">
+        <div class="wrap hero-grid">
+          <div class="hero-copy rise">
+            <h1 id="h-hero">The intelligence layer for banks and NBFCs.</h1>
+            <p class="lead">Understand every customer in context, propose the next permitted action, and keep your people in control of each decision.</p>
+            <div class="actions">
+              <a class="btn press" href="#connect">Request a demonstration</a>
+              <a class="link" href="#journey">See it work on one account</a>
+            </div>
+          </div>
+          <figure class="call rise" data-ui aria-label="A customer call, demo account 1048">
+            <figcaption class="call-meta"><span class="live-dot" aria-hidden="true"></span>Demo account 1048 · 23 days past due</figcaption>
+            <p class="call-ta" lang="ta">சம்பளம் வருவதற்கு முன் என்னால் கட்ட முடியாது. அதற்குப் பிறகு யாராவது என்னை அழைக்க முடியுமா?</p>
+            <p class="call-en">“I cannot pay before the salary comes in. Can someone call me after that?”</p>
+          </figure>
+        </div>
+        <div class="stage hero-stage" data-stage aria-hidden="true"></div>
+        <p class="hint wrap" aria-hidden="true">Her voice, drawn in dots. Drag across it.</p>
+      </section>
+
+      <!-- 2. Scattered -->
+      <section id="intelligence" class="sec scatter" data-state="scatter" aria-labelledby="h-scatter">
+        <div class="stage" data-stage aria-hidden="true">
+          <span class="cloud-label" data-anchor="customer" style="--x:9%;--y:16%">Customer</span>
+          <span class="cloud-label" data-anchor="loan" style="--x:84%;--y:13%">Loan system</span>
+          <span class="cloud-label" data-anchor="calls" style="--x:7%;--y:80%">Conversations</span>
+          <span class="cloud-label" data-anchor="txn" style="--x:86%;--y:78%">Transactions</span>
+          <span class="cloud-label" data-anchor="policy" style="--x:50%;--y:93%">Policy</span>
+        </div>
+        <div class="wrap scatter-copy">
+          <h2 id="h-scatter" class="rise">The answer is in five places.</h2>
+          <p class="statement rise">
+            Her history is in the loan system <span class="frame" data-ui aria-hidden="true"><b>₹48,500</b></span>,
+            her promise in a call <span class="frame frame-wave" data-ui aria-hidden="true"><svg viewBox="0 0 40 16"><path d="M1 8h6l2 3 3-7 3 10 4-12 2 6h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /></svg></span>,
+            her language in the CRM <span class="frame" data-ui aria-hidden="true"><b>Tamil</b></span>
+            and your policy in a PDF.
+          </p>
+          <p class="rise">No one sees all of it at the moment the decision is made.</p>
+        </div>
+      </section>
+
+      <!-- 3. The loop -->
+      <section id="loop" class="sec loop" data-state="loop" aria-labelledby="h-loop">
+        <div class="wrap">
+          <div class="loop-head">
+            <h2 id="h-loop" class="rise">One layer. One decision loop.</h2>
+            <p class="rise">Super Intelligence connects the systems you already run, and moves your teams from raw data to decisions, permitted actions and verified outcomes.</p>
+          </div>
+          <ol class="tiles" data-stage>
+            <li class="tile-col"><div class="tile t1" data-anchor="t0"></div><h3 class="rise">Understand</h3><p class="rise">A contextual view of the customer, account, history and situation.</p></li>
+            <li class="tile-col"><div class="tile t2" data-anchor="t1"></div><h3 class="rise">Predict</h3><p class="rise">Likely outcomes, risks and the opportunities that deserve attention.</p></li>
+            <li class="tile-col"><div class="tile t3" data-anchor="t2"></div><h3 class="rise">Decide</h3><p class="rise">A next best action from evidence, policy and authorised options.</p></li>
+            <li class="tile-col"><div class="tile t4" data-anchor="t3"></div><h3 class="rise">Execute</h3><p class="rise">Voice, messaging, people and workflows, within assigned permissions.</p></li>
+            <li class="tile-col"><div class="tile t5" data-anchor="t4"></div><h3 class="rise">Learn</h3><p class="rise">Recommendations compared with real outcomes, then governed updates.</p></li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- 4. Account 1048 -->
+      <section id="journey" class="sec case" data-state="case" data-pin aria-labelledby="h-case">
+        <div class="wrap case-intro">
+          <h2 id="h-case" class="rise">Why is account 1048 stuck?</h2>
+          <p class="rise">One demo account, followed from its context to a recorded outcome. Scroll, or step through it.</p>
+        </div>
+        <div class="pin">
+          <div class="wrap case-grid">
+            <div class="plate" data-stage data-ground="#181e1a" aria-hidden="true">
+              <span class="plate-label" data-anchor="hA" style="--x:84%;--y:22%">A</span>
+              <span class="plate-label" data-anchor="hB" style="--x:84%;--y:50%">B</span>
+              <span class="plate-label" data-anchor="hC" style="--x:84%;--y:78%">C</span>
+            </div>
+            <div class="case-col">
+              <dl class="file" data-ui aria-label="Demo account 1048">
+                <div><dt>Outstanding</dt><dd>₹48,500</dd></div>
+                <div><dt>Days past due</dt><dd>23</dd></div>
+                <div><dt>Contact attempts</dt><dd>4</dd></div>
+                <div><dt>Promise to pay</dt><dd>None active</dd></div>
+                <div><dt>Language</dt><dd>Tamil</dd></div>
+              </dl>
+              <div class="tabs" role="tablist" aria-label="Steps of the journey">
+                {steps.map((s, i) => (
+                  <button role="tab" class="tab press" id={`tab-${i}`} aria-controls={`step-${i}`} aria-selected={i === 0 ? 'true' : 'false'} data-step={i}>{s.tab}</button>
+                ))}
+              </div>
+              <div class="steps">
+                {steps.map((s, i) => (
+                  <div class="step" id={`step-${i}`} role="tabpanel" aria-labelledby={`tab-${i}`} data-active={i === 0 ? 'true' : 'false'}>
+                    <h3>{s.title}</h3>
+                    {s.body && <p>{s.body}</p>}
+                    {s.list.length > 0 && <ul class="chev">{s.list.map((l) => <li>{l}</li>)}</ul>}
+                    {s.chat && (
+                      <ol class="chat" data-ui>
+                        {s.chat.map(([who, line]) => <li data-who={who === 'Customer' ? 'c' : 'a'}><b>{who}</b> {line}</li>)}
+                      </ol>
+                    )}
+                    {i === 4 && <p class="stamp" data-ui>Callback requested · Payment not confirmed</p>}
+                  </div>
+                ))}
+              </div>
+              <div class="cells">
+                <button class="cell cell-ink press" data-dir="-1">Back</button>
+                <button class="cell cell-tone press" data-dir="1">Next step</button>
+              </div>
+              <p class="note">Simulated demo. No real customer data.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. The gate -->
+      <section id="trust" class="sec gate" data-state="gate" data-pin aria-labelledby="h-gate">
+        <div class="pin">
+          <div class="wrap gate-grid">
+            <div class="gate-copy">
+              <h2 id="h-gate">Nothing skips the gate.</h2>
+              <p>The recommended action falls through six layers. At the policy gate it stops. Here, you are the reviewer.</p>
+              <ol class="layers">
+                {layers.map((l, i) => (
+                  <li><button class="layer press" data-layer={i} aria-describedby="layer-text">{l.name}</button></li>
+                ))}
+              </ol>
+              <p id="layer-text" class="layer-text" aria-live="polite">{layers[0].text}</p>
+            </div>
+            <div class="gate-stage" data-stage>
+              <div class="hold-wrap" style="--y:57%">
+                <p class="gate-tag">Policy gate</p>
+                <button class="hold press" id="hold" aria-describedby="hold-help">
+                  <span class="hold-label">Hold to approve</span>
+                  <span class="hold-fill" aria-hidden="true"><span class="hold-label">Hold to approve</span></span>
+                </button>
+                <p class="gate-status" id="gate-status" aria-live="polite">Waiting for review</p>
+                <p id="hold-help" class="hold-help">High-impact actions route to authorised staff. They never bypass the gate.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <script type="application/json" id="layer-data" set:html={JSON.stringify(layers.map((l) => l.text))} />
+      </section>
+
+      <!-- 6. Control board -->
+      <section id="enterprise" class="sec board-sec" data-state="board" aria-labelledby="h-board">
+        <div class="wrap board" data-stage>
+          <div class="btile btile-head" data-anchor="mark">
+            <h2 id="h-board">Within your control.</h2>
+          </div>
+          {pillars.map(([n, t]) => (
+            <div class="btile"><h3 class="rise">{n}</h3><p class="rise">{t}</p></div>
+          ))}
+        </div>
+      </section>
+
+      <!-- 7. Walls -->
+      <section id="deployment" class="sec walls" data-state="walls" aria-labelledby="h-walls">
+        <div class="wrap walls-grid">
+          <div class="walls-copy">
+            <h2 id="h-walls" class="rise">Deploy inside your walls.</h2>
+            <div class="seg rise" role="radiogroup" aria-label="Deployment model" data-ui>
+              {Object.entries(modes).map(([k, m], i) => (
+                <button role="radio" class="seg-btn press" data-mode={k} aria-checked={i === 0 ? 'true' : 'false'}>{m.label}</button>
+              ))}
+            </div>
+            <p class="mode-text rise" id="mode-text" aria-live="polite">{modes.premise.text}</p>
+            <h3 class="rise">Works with what you run</h3>
+            <ul class="chev connectors rise">{connectors.map((c) => <li>{c}</li>)}</ul>
+            <p class="small rise">Read access first. Approved actions only after data, security and operational validation. Every connector and architecture detail is confirmed during solution design.</p>
+          </div>
+          <div class="walls-stage" data-stage>
+            <span class="wall-label" data-anchor="wallA">Institution data centre</span>
+            <span class="wall-label wall-label-b" data-anchor="wallB">Approved private infrastructure</span>
+            <p class="push-hint" aria-hidden="true">Try to move the data out.</p>
+          </div>
+        </div>
+        <script type="application/json" id="mode-data" set:html={JSON.stringify(Object.fromEntries(Object.entries(modes).map(([k, m]) => [k, m.text])))} />
+      </section>
+
+      <!-- 8. Engines -->
+      <section id="modules" class="sec engines" data-state="engines" aria-labelledby="h-engines">
+        <div class="mosaic" data-stage>
+          <div class="mtile m-head"><h2 id="h-engines">Six engines, one system.</h2><p>Start with one focused workflow. Expand without replacing your core systems.</p></div>
+          {engines.map((e) => (
+            <button class={`mtile m-${e.id} press`} data-engine={e.id} data-anchor={e.id} aria-controls="engine-preview">
+              <span class="m-name">{e.name}</span>
+              <span class="m-line">{e.line}</span>
+            </button>
+          ))}
+          <div class="mtile m-preview" id="engine-preview" aria-live="polite" data-ui>
+            {engines.map((e, i) => (
+              <div class="ep" data-for={e.id} hidden={i !== 0}>
+                <p class="ep-status">Validation required</p>
+                <p class="ep-title">{e.name}</p>
+                <dl>
+                  <div><dt>Inputs</dt><dd>{e.inputs}</dd></div>
+                  <div><dt>Decision support</dt><dd>{e.support}</dd></div>
+                  <div><dt>Output</dt><dd>{e.output}</dd></div>
+                </dl>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div class="wrap engines-foot">
+          <p>Already running Voice India? <a href="https://www.voiceindia.ai/augmented-ai">Augmented AI</a> puts account context beside human agents, and <a href="https://www.voiceindia.ai/resonance">Resonance</a> analyses conversation quality and compliance. Both can feed Super Intelligence, depending on the configured deployment and connectors.</p>
+          <p class="small">Modules describe the intended architecture. Availability for a deployment is confirmed during scoping.</p>
+        </div>
+      </section>
+
+      <!-- 9. Outcomes -->
+      <section id="outcomes" class="sec stats" data-state="stats" aria-labelledby="h-stats">
+        <div class="wrap stats-grid">
+          <div class="stats-q">
+            <h2 id="h-stats" class="rise">How long does context take?</h2>
+            <div class="calc rise" data-ui>
+              <label for="accounts">Accounts past due each month <output id="accounts-out">12,000</output></label>
+              <input type="range" id="accounts" min="1000" max="100000" step="1000" value="12000" />
+              <div class="stepper">
+                <span id="mins-label">Minutes to gather one account’s context</span>
+                <button class="step-btn press" data-delta="-1" aria-label="Fewer minutes">−</button>
+                <output id="mins-out" aria-labelledby="mins-label">6</output>
+                <button class="step-btn press" data-delta="1" aria-label="More minutes">+</button>
+              </div>
+            </div>
+          </div>
+          <div class="dots-stage" data-stage aria-hidden="true"></div>
+          <p class="figure"><span id="hours">1,200</span><span class="unit">hours a month</span></p>
+          <p class="working">Accounts × minutes ÷ 60: the time your team spends pulling each customer together from five systems. <span class="dots-key">One dot is one hour.</span> A pilot measures what changes.</p>
+        </div>
+        <div class="wrap measures">
+          <h3 class="rise">What a pilot would measure</h3>
+          <ul>
+            {measures.map(([n, t]) => <li class="rise"><b>{n}</b> {t}</li>)}
+          </ul>
+          <p class="small">Actual impact depends on portfolio, data quality, workflow design, operating policy and the baseline used. Results are validated during a controlled pilot.</p>
+        </div>
+      </section>
+
+      <!-- 10. The reply -->
+      <section id="learning-loop" class="sec reply" data-state="reply" aria-labelledby="h-reply">
+        <div class="wrap reply-head">
+          <h2 id="h-reply" class="rise">Every outcome comes back.</h2>
+          <p class="rise">Outcomes are compared with recommendations and reviewed. Changes are evaluated and approved before they reach production. The loop is governed, not autonomous.</p>
+        </div>
+        <div class="stage reply-stage" data-stage aria-hidden="true"></div>
+        <div class="wrap reply-foot">
+          <figure class="call call-light" data-ui aria-label="The SI agent's reply, simulated">
+            <figcaption class="call-meta"><span class="live-dot ok" aria-hidden="true"></span>SI agent · simulated</figcaption>
+            <p class="call-ta" lang="ta">புரிகிறது. உங்கள் சம்பளம் வந்த பிறகு தமிழில் அழைக்க பதிவு செய்கிறேன். அந்த நேரம் உங்களுக்கு சரியா?</p>
+            <p class="call-en">“Understood. I will note a call after your salary credit, in Tamil. Is that window suitable?”</p>
+          </figure>
+          <ul class="chev truths">
+            <li>Every channel meets one customer context.</li>
+            <li>AI handles scale. People handle the moments that matter.</li>
+            <li>Verified outcomes return to the core.</li>
+            <li>Every interaction becomes intelligence.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 11. Start with one -->
+      <section id="connect" class="sec cta" data-state="cta" aria-labelledby="h-cta">
+        <div class="wrap cta-grid">
+          <div class="cta-line" data-stage aria-hidden="true"></div>
+          <div class="cta-copy">
+            <h2 id="h-cta" class="rise">Start with one workflow.</h2>
+            <p class="rise">Choose one collection segment or queue. Agree the baseline, the permitted data and the approval rules. Run a controlled pilot, then decide what to scale.</p>
+            <ol class="pilot rise">
+              <li><b>Define</b> the use case, baseline and success metrics.</li>
+              <li><b>Connect</b> data access, permissions and integration scope.</li>
+              <li><b>Validate</b> recommendations, exceptions, security and outcomes.</li>
+              <li><b>Scale</b> only after operational and governance sign-off.</li>
+            </ol>
+          </div>
+          <form class="dialog" id="demo" data-ui action="mailto:tabassum.farheen@voiceindia.ai" method="get" novalidate>
+            <p class="dialog-title">Request a Collections SI demonstration</p>
+            <div class="f2">
+              <label>Name<input name="name" autocomplete="name" required /></label>
+              <label>Work email<input name="email" type="email" autocomplete="email" required /></label>
+            </div>
+            <div class="f2">
+              <label>Organisation<input name="org" autocomplete="organization" required /></label>
+              <label>Role<input name="role" autocomplete="organization-title" /></label>
+            </div>
+            <div class="f2">
+              <label>Use case
+                <select name="usecase">
+                  <option>Collections</option><option>Customer service</option><option>Portfolio intelligence</option><option>Risk and compliance</option><option>Other</option>
+                </select>
+              </label>
+              <label>Deployment
+                <select name="deploy">
+                  <option>Not sure yet</option><option>On premise</option><option>Private cloud</option><option>Hybrid</option>
+                </select>
+              </label>
+            </div>
+            <label>What would you like to prove?<textarea name="brief" rows="3"></textarea></label>
+            <button class="btn btn-ink press" type="submit">Prepare the request</button>
+            <p class="form-note" id="form-note">Opens a ready-written email to tabassum.farheen@voiceindia.ai. Please leave out confidential customer information.</p>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot" data-state="foot">
+      <div class="mark" data-stage aria-hidden="true"></div>
+      <div class="wrap foot-grid">
+        <Image src={logoDark} alt="Voice India" width={200} height={50} loading="lazy" class="foot-logo" />
+        <ul>
+          <li><a href="#loop">How it works</a></li>
+          <li><a href="#journey">Account 1048</a></li>
+          <li><a href="#trust">Control</a></li>
+          <li><a href="#modules">Engines</a></li>
+        </ul>
+        <ul>
+          <li><a href="https://www.voiceindia.ai/augmented-ai">Augmented AI</a></li>
+          <li><a href="https://www.voiceindia.ai/resonance">Resonance</a></li>
+          <li><a href="https://www.voiceindia.ai/">Voice India AI</a></li>
+        </ul>
+        <p class="contact"><a href="mailto:tabassum.farheen@voiceindia.ai">tabassum.farheen@voiceindia.ai</a><br />Tell us what you would like to build.</p>
+        <div class="foot-last">
+          <p>© 2026 Voice India</p>
+          <a class="btn btn-sm press" href="#top" id="rewind">Back to the call</a>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      import '../scripts/main.js';
+    </script>
+  </body>
+</html>
