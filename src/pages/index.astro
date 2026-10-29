@@ -124,7 +124,7 @@ const pin = 'sticky top-(--nav) z-3 h-[calc(100svh_-_var(--nav))] py-[clamp(20px
 const crest = 'crest absolute inset-x-0 -bottom-px z-1 w-full';
 const crestNavy = `${crest} h-[28svh] fill-navy max-sm:h-[14svh]`;
 const crestLight = `${crest} crest-light h-[14svh] fill-white`;
-const navLink = 'text-navy no-underline opacity-78 transition-opacity duration-150 hover:opacity-100 group-data-[tone=dark]/nav:text-white';
+const navLink = 'relative py-2 font-semibold text-on-navy no-underline transition-colors duration-200 hover:text-white after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:origin-left after:scale-x-0 after:rounded-full after:bg-orange after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100 group-data-[tone=light]/nav:text-slate group-data-[tone=light]/nav:hover:text-navy';
 const footLink = 'text-white no-underline hover:underline';
 const cardTitle = 'mb-1.5 text-body font-bold tracking-[-.01em] text-navy';
 const arrow = 'arrow grid size-10 place-items-center rounded-[4px] bg-white text-navy transition-[scale,background-color] duration-150 ease-out active:scale-94 disabled:cursor-default disabled:opacity-35 enabled:hover:bg-ice motion-reduce:active:scale-100 [&_svg]:size-4 [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[1.8] [&_svg]:[stroke-linecap:round] [&_svg]:[stroke-linejoin:round]';
@@ -170,11 +170,12 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
     <a class="absolute -top-15 left-3 z-30 bg-navy px-3.5 py-2.5 text-white focus:top-3" href="#main">Skip to content</a>
     <canvas id="field" class="pointer-events-none fixed inset-0 z-2 block h-lvh w-screen in-[.no-js]:hidden" aria-hidden="true"></canvas>
 
-    <header class="group/nav sticky top-0 z-20 h-(--nav) bg-white data-[tone=dark]:bg-navy" id="nav">
+    <!-- The bar takes the ground beneath it: navy over the hero, frosted white over the pale chapters (main.js sets data-tone). -->
+    <header class="group/nav sticky top-0 z-20 h-(--nav) bg-navy transition-[background-color,box-shadow] duration-300 ease-out data-[tone=light]:bg-white/85 data-[tone=light]:shadow-[0_1px_0_var(--color-line)] data-[tone=light]:backdrop-blur-md" id="nav" data-tone="dark">
       <div class="wrap flex h-full items-center justify-between gap-6">
-        <a href="#top" class="relative block h-[34px] w-[136px]" aria-label="Voice India Super Intelligence, back to top">
-          <Image src={logoLight} alt="Voice India" width={168} height={42} loading="eager" fetchpriority="high" class="absolute inset-0 size-full object-contain group-data-[tone=dark]/nav:opacity-0" />
-          <Image src={logoDark} alt="" width={168} height={42} loading="eager" class="absolute inset-0 size-full object-contain opacity-0 group-data-[tone=dark]/nav:opacity-100" />
+        <a href="#top" class="relative block h-[38px] w-[152px]" aria-label="Voice India Super Intelligence, back to top">
+          <Image src={logoDark} alt="Voice India" width={168} height={42} loading="eager" fetchpriority="high" class="absolute inset-0 size-full object-contain transition-opacity duration-300 group-data-[tone=light]/nav:opacity-0" />
+          <Image src={logoLight} alt="" width={168} height={42} loading="eager" class="absolute inset-0 size-full object-contain opacity-0 transition-opacity duration-300 group-data-[tone=light]/nav:opacity-100" />
         </a>
         <nav aria-label="Sections" class="max-md:hidden">
           <ul class="flex gap-[clamp(20px,2.6vw,40px)] text-small font-semibold">
@@ -189,7 +190,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
       <section id="top" class="ch relative bg-navy text-on-navy" data-state="hero" data-tone="dark" aria-labelledby="h-hero">
         <div class={stage} data-stage aria-hidden="true"></div>
         <!-- Words on the left, her kolam on the right like a picture on a wall, with what she said as its label. -->
-        <div class="wrap relative z-3 grid min-h-[max(680px,calc(100svh_-_var(--nav)))] grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-x-[clamp(40px,5vw,96px)] py-[clamp(32px,6vh,72px)] max-lg:min-h-0 max-lg:grid-cols-1 max-lg:gap-y-10 max-lg:pt-[clamp(28px,6vw,48px)] max-lg:pb-14">
+        <div class="wrap relative z-3 grid min-h-[max(680px,calc(100svh_-_var(--nav)))] grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-x-[clamp(40px,5vw,96px)] py-[clamp(32px,6vh,72px)] pb-[clamp(56px,7.5vh,84px)] max-lg:min-h-0 max-lg:grid-cols-1 max-lg:gap-y-10 max-lg:pt-[clamp(28px,6vw,48px)] max-lg:pb-14">
           <!-- the claim sits in the middle of the column; the compliance note shares a baseline with her caption -->
           <!-- on narrow screens the column dissolves into the page grid, so the note can follow her line -->
           <div class="grid max-h-[760px] grid-rows-[minmax(0,1fr)_auto] self-center lg:h-full max-lg:contents">
@@ -215,34 +216,38 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
             </div>
           </figure>
         </div>
+        <!-- The pale chapter rises in a low wave as the kolam loosens into its five records. -->
+        <svg class="pointer-events-none absolute inset-x-0 -bottom-px z-1 h-[clamp(32px,4.5svh,48px)] w-full fill-mist" viewBox="0 0 1440 140" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 64C170 42 330 22 500 42S790 105 980 82 1270 32 1440 48V140H0Z" />
+        </svg>
       </section>
 
-      <section id="problem" class="ch relative bg-[linear-gradient(180deg,var(--color-navy)_0%,var(--color-navy)_35%,var(--color-navy-2)_100%)] pt-[clamp(72px,10vh,128px)] pb-[clamp(96px,14vh,170px)] text-on-navy max-lg:pt-6" data-state="scatter" data-tone="dark" aria-labelledby="h-scatter">
+      <section id="problem" class="ch relative bg-mist pt-[clamp(72px,10vh,128px)] pb-[clamp(96px,14vh,170px)] text-ink max-lg:pt-10" data-state="scatter" data-tone="light" aria-labelledby="h-scatter">
         <!-- The hero's kolam breaks here. Each piece drifts down to the system that keeps it, its label beneath it. -->
         <div class="wrap relative z-3 grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-center gap-[clamp(32px,5vw,96px)] max-lg:grid-cols-1 max-lg:gap-12">
           <!-- top: the claim; middle: her four calls, each started from one piece; base: the line they lead to -->
           <!-- on stacked layouts the column dissolves into the section's grid, so the hold can follow the pieces -->
           <div class="flex flex-col gap-10 self-center max-lg:contents">
             <div>
-              <h2 id="h-scatter" class="reveal text-white">Her account sits in five systems</h2>
-              <p class="fade mt-6 max-w-[38ch] text-lead leading-[1.45]">Each collector opened one of them, so nobody knew what she had already&nbsp;said.</p>
+              <h2 id="h-scatter" class="reveal text-navy">Her account sits in five systems</h2>
+              <p class="fade mt-6 max-w-[38ch] text-lead leading-[1.45] text-slate">Each collector opened one of them, so nobody knew what she had already&nbsp;said.</p>
             </div>
             <ol class="fade grid max-w-[30rem] gap-3.5 text-body" aria-label="Her four calls since the due date" style="--d:180ms">
               {calls.map(([day, said, quote]) => (
                 <li class="grid grid-cols-[5rem_minmax(0,1fr)] items-baseline gap-4 max-sm:grid-cols-[4rem_minmax(0,1fr)]">
-                  <span class="text-small text-dim tabular-nums">{day}</span>
-                  <span class={quote ? 'font-medium text-white' : 'text-on-navy'}>{said}</span>
+                  <span class="text-small font-medium text-slate tabular-nums">{day}</span>
+                  <span class={quote ? 'font-medium text-navy' : 'text-slate'}>{said}</span>
                 </li>
               ))}
             </ol>
             <!-- the line the four calls lead to. Once the visitor has held the pieces together it becomes what they found,
                  and stays. On stacked layouts it follows the pieces, so the conclusion comes after the evidence. -->
-            <p class="fade max-w-[24ch] text-[length:clamp(1.5rem,1.1rem_+_.9vw,2rem)] leading-[1.2] font-medium tracking-[-.02em] text-white max-lg:order-last" style="--d:260ms" id="fifth-call" aria-live="polite"><span class="inline-block transition-[opacity,filter] duration-300 ease-out" data-payoff>So the fifth call sounds like the first&nbsp;four.</span></p>
-            <!-- the one thing to do here: hold, and the pieces go home into one kolam. Shown only once the particles run. -->
+            <p class="fade max-w-[24ch] text-[length:clamp(1.5rem,1.1rem_+_.9vw,2rem)] leading-[1.2] font-medium tracking-[-.02em] text-navy max-lg:order-last" style="--d:260ms" id="fifth-call" aria-live="polite"><span class="inline-block transition-[opacity,filter] duration-300 ease-out" data-payoff>So the fifth call sounds like the first&nbsp;four.</span></p>
+            <!-- Click, tap, or keyboard: bring the five fragments together into the original kolam. -->
             <div class="fade -mt-2 max-lg:order-last max-lg:-mt-4" style="--d:340ms" data-join-wrap hidden>
-              <button class="relative h-12 touch-none overflow-hidden rounded-[4px] bg-blue px-6 font-semibold text-white transition-[scale] duration-150 ease-out select-none [-webkit-touch-callout:none] active:scale-98 motion-reduce:active:scale-100" id="join" type="button">
-                <span class="hold-label flex h-full items-center">Hold to read her as one account</span>
-                <span class="hold-fill absolute inset-0 bg-white px-6 text-navy" aria-hidden="true"><span class="hold-label flex h-full items-center">Hold to read her as one account</span></span>
+              <button class="relative h-12 overflow-hidden rounded-[4px] bg-blue px-6 font-semibold text-white transition-[scale] duration-150 ease-out select-none active:scale-98 motion-reduce:active:scale-100" id="join" type="button" aria-pressed="false">
+                <span class="hold-label flex h-full items-center">Bring her five records together</span>
+                <span class="hold-fill absolute inset-0 bg-white px-6 text-navy" aria-hidden="true"><span class="hold-label flex h-full items-center">Bring her five records together</span></span>
               </button>
             </div>
           </div>
@@ -251,7 +256,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
             {sources.map(({ name, fact, piece, x, y, side }, i) => (
               <li class="relative grid grid-cols-[min(34vw,168px)_minmax(0,1fr)] items-center gap-5 transition-opacity duration-300 ease-out in-data-[joined=true]:opacity-0 sm:max-lg:last:col-span-2 sm:max-lg:last:justify-self-center lg:absolute lg:top-(--y) lg:left-(--x) lg:block lg:w-[22%] lg:-translate-1/2" style={`--x:${x}%;--y:${y}%`}>
                 <span class="block aspect-square" data-shard={piece} aria-hidden="true"></span>
-                <p class={`fade text-small leading-[1.4] text-on-navy lg:absolute ${labelSide[side]}`} data-land style={`--d:${260 + i * 80}ms`}><b class="block font-semibold text-white">{name}</b>{fact}</p>
+                <p class={`fade text-small leading-[1.4] text-slate lg:absolute ${labelSide[side]}`} data-land style={`--d:${260 + i * 80}ms`}><b class="block font-semibold text-navy">{name}</b>{fact}</p>
               </li>
             ))}
           </ul>

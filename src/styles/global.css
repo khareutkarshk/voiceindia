@@ -69,7 +69,7 @@
     src:url(/fonts/anek-tamil.woff2) format("woff2-variations"),url(/fonts/anek-tamil.woff2) format("woff2");
     unicode-range:U+0964-0965,U+0B82-0BFA,U+200C-200D,U+20B9,U+25CC}
 
-  :root{--m:20px;--nav:68px}
+  :root{--m:20px;--nav:78px}
   @media (min-width:760px){:root{--m:40px}}
   @media (min-width:1200px){:root{--m:64px}}
 

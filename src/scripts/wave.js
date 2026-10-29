@@ -275,8 +275,11 @@ void main() {
   if (uModeB > 2.5 && uModeB < 3.5) { cB = lit > .5 ? threadCol(2., tone) : cB; B.z *= lit > .5 ? 1. : .38; }
   // the kolam is rice flour: the pulli white, the line a cooler ice. One strand is orange, the stretch of
   // line that breaks away with her words (piece 4, the call recordings), so the eye can follow it down
-  vec3 flour = vec3(.93, .95, 1.), ice = vec3(.78, .85, .98);
-  vec3 lineCol = abs(aShard - 4.) < .5 ? threadCol(2., 1.) : ice;
+  // Rice flour reads as dark indigo on the pale paper chapter and soft white on navy.
+  vec3 flour = mix(vec3(.027, .106, .286), vec3(.93, .95, 1.), tone);
+  vec3 ice = mix(vec3(.153, .298, .608), vec3(.78, .85, .98), tone);
+  vec3 orange = mix(vec3(.76, .255, .06), threadCol(2., 1.), tone);
+  vec3 lineCol = abs(aShard - 4.) < .5 ? orange : ice;
   if (uModeA > 3.5) cA = role > 1.5 ? lineCol : flour;
   if (uModeB > 3.5) cB = role > 1.5 ? lineCol : flour;
   bool hyb = floor(aSeed.w * 3.) > 1.5 && aSeed2.z >= .16;

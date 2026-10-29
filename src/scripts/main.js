@@ -142,16 +142,13 @@ function goStep(i) {
 prevBtn.addEventListener('click', () => goStep(current - 1));
 nextBtn.addEventListener('click', () => goStep(current + 1));
 
-// ---------- hold to join her story: the five pieces go home into one kolam while held, and part on release ----------
-// Linear while held, so the hold reads as deliberate; a quick ease back on release, as the system lets go.
-// The first time it is whole, the closing line becomes what no single system knew (salary on the 7th, her ask,
-// the contact hours, her language), and stays: the result is earned.
-// A tap too short to be a hold still plays a small preview, so the control explains itself.
+// ---------- bring her five records together on click/tap; clicking again lets them drift apart ----------
+// The change is persistent so it works equally well with a mouse, trackpad, touch, or keyboard.
 const join = $('#join'), payoff = $('[data-payoff]'), joinStage = $('#problem [data-stage]');
-let joined = 0, joining = false, joinT = 0, found = false, pressedAt = 0, previewTo = 0;
+let joined = 0, joinTarget = 0, joinT = 0, found = false;
 function reveal() {
   found = true;
-  const swap = () => { payoff.textContent = 'Read as one, the next call is clear: the 8th, after 6\u00a0pm, in\u00a0Tamil.'; join.querySelectorAll('.hold-label').forEach((l) => (l.textContent = 'Hold to see it again')); payoff.style.opacity = ''; payoff.style.filter = ''; };
+  const swap = () => { payoff.textContent = 'Read as one, the next call is clear: the 8th, after 6\u00a0pm, in\u00a0Tamil.'; payoff.style.opacity = ''; payoff.style.filter = ''; };
   if (reduced) return swap();
   // a short blur bridges the two sentences, so it reads as one line changing rather than two swapping
   payoff.style.opacity = '0'; payoff.style.filter = 'blur(4px)';
@@ -159,21 +156,26 @@ function reveal() {
 }
 function tickJoin(t) {
   const dt = joinT ? Math.min(0.05, (t - joinT) / 1000) : 0; joinT = t;
-  if (joining || joined < previewTo) joined = reduced ? (joining ? 1 : joined) : Math.min(1, joined + dt / 1.2);
-  else { previewTo = 0; joined = reduced || joined < 0.003 ? 0 : joined * Math.exp(-dt * 10); }
+  if (reduced) joined = joinTarget;
+  else joined += (joinTarget - joined) * (1 - Math.exp(-dt * 5));
+  if (Math.abs(joinTarget - joined) < 0.002) joined = joinTarget;
   if (field) field.setJoin(joined);
   join.style.setProperty('--p', joined.toFixed(4));
   joinStage.dataset.joined = String(joined > 0.05);
+  join.setAttribute('aria-pressed', String(joinTarget === 1));
   if (joined >= 1 && !found) reveal();
-  if (joining || joined > 0) requestAnimationFrame(tickJoin); else joinT = 0;
+  if (joined !== joinTarget) requestAnimationFrame(tickJoin); else joinT = 0;
 }
 if (join) {
-  const start = () => { if (joining) return; joining = true; pressedAt = performance.now(); joinT = 0; requestAnimationFrame(tickJoin); };
-  const stop = () => { if (!joining) return; joining = false; if (performance.now() - pressedAt < 250 && !reduced) previewTo = 0.3; };
-  join.addEventListener('pointerdown', (e) => { join.setPointerCapture(e.pointerId); start(); });
-  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((n) => join.addEventListener(n, stop));
-  join.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); start(); } });
-  join.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') stop(); });
+  join.setAttribute('aria-pressed', 'false');
+  join.addEventListener('click', () => {
+    joinTarget = joinTarget ? 0 : 1;
+    join.querySelectorAll('.hold-label').forEach((label) => {
+      label.textContent = joinTarget ? 'Let the pieces drift apart' : 'Bring her five records together';
+    });
+    joinT = 0;
+    requestAnimationFrame(tickJoin);
+  });
   join.addEventListener('contextmenu', (e) => e.preventDefault());
 }
 
