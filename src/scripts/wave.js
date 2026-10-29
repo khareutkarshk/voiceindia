@@ -1,13 +1,18 @@
 // The brand wave, drawn as particles. One WebGL draw call; every dot is placed in the vertex shader.
 // Threads carry the brand's meanings: navy = foundation, blue = intelligence, orange = action, green = trust.
-// Each chapter declares a shape (a wave, a word, a walled field, the logo). Scrolling mixes the dots
+// Each chapter declares a shape (a kolam, a wave, a word, a walled field, the logo). Scrolling mixes the dots
 // from one shape to the next; the page's own scroll (smoothed by Lenis) is the only clock for that.
+
+import { kolam } from './kolam.js';
 
 const TAU = Math.PI * 2;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
 const VS = `
 precision highp float;
+#ifdef TRAIL
+uniform sampler2D uTrail;  // where a finger has been through the flour, fading
+#endif
 attribute vec4 aSeed;   // thread, u, r1, r2
 attribute vec4 aSeed2;  // gaussian, strand, r3, size
 attribute vec2 aFrom;
@@ -23,7 +28,12 @@ uniform float uFar;
 uniform float uSel;     // the engine whose thread is lit     // travel distance (in screens) beyond which shapes dissolve instead of fly
 uniform vec3 uBand;      // viewport y of up to three ground edges
 uniform vec4 uBandTone;  // tone (0 light, 1 navy) of the ground above, between and below them
+uniform vec4 uKol;       // the kolam's opening: voice gathers the flour, its loudness, the pulli settle, the line is drawn
+uniform vec2 uHead;      // the drawing hand, in the kolam's stage
 varying vec4 vCol;
+
+// in the kolam, blue and orange threads make the one line, part of the navy thread makes the pulli, the rest is loose flour
+float kolRole() { return aSeed.x > .5 && aSeed.x < 2.5 ? 2. : aSeed.x < .5 && aSeed2.z < .55 ? 1. : 0.; }
 
 vec3 threadCol(float k, float dark) {
   vec3 l = k < .5 ? vec3(.027,.106,.286) : k < 1.5 ? vec3(.153,.298,.608) : k < 2.5 ? vec3(1.,.42,.102) : vec3(.086,.639,.29);
@@ -36,41 +46,89 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts) {
   float k = aSeed.x, u = aSeed.y, r1 = aSeed.z, r2 = aSeed.w;
   float g = aSeed2.x, st = aSeed2.y, r3 = aSeed2.z;
   float t = uTime, w = R.z, h = R.w;
+  if (mode > 3.5) {
+    // p1 = kolam centre x, y, radius, pulli spacing (px in the stage); pts = this dot's place in the kolam
+    float role = kolRole();
+    // loose flour hanging in still air, drifting on a slow current
+    vec2 b0 = vec2(r1, r2) * vec2(w, h);
+    vec2 dust = b0 + vec2(sin(b0.y * .0052 + t * .11 + r3 * 6.) + .5 * sin(t * .07 + r2 * 30.), cos(b0.x * .0047 - t * .09 + r1 * 6.) + .5 * cos(t * .05 + r1 * 30.)) * 22.;
+    // her voice: the flour gathers into one band through the kolam's centre and moves with what she says
+    float env = sin(3.14159 * u);
+    float amp = .12 + uKol.y;
+    vec2 band = vec2(u * w, p1.y + (st - 3.) * 1.7 + g * 1.4
+      + (sin(u * 13. + t * 2.1 + r3 * .3) * .06 + sin(u * 29. - t * 3.3) * .025) * h * amp * env);
+    float ge = clamp(uKol.x * 1.7 - r3 * .7, 0., 1.);
+    ge = ge * ge * (3. - 2. * ge);
+    vec2 p = mix(dust, band, ge);
+    float a = mix(.16 + .3 * r1, .8, ge);
+    float back = smoothstep(0., 1., uKol.z);
+    if (role > .5 && role < 1.5) {
+      // the pulli settle from the centre outwards, slowing as they land
+      float dc = length(pts - p1.xy) / max(p1.z, 1.);
+      float se = clamp(uKol.z * 1.8 - dc * .8, 0., 1.);
+      se = 1. - pow(1. - se, 3.);
+      p = mix(p, pts, se);
+      a = mix(a, .62 + .38 * r1, se);
+    } else {
+      // loose flour settles back into the air, and thins once the line is done so the kolam carries the screen
+      p = mix(p, dust, back);
+      a = mix(a, (.16 + .3 * r1) * (1. - .45 * uKol.w), back);
+    }
+    if (role > 1.5) {
+      // the line: flour swirls in to the hand just before it is laid down behind it
+      vec2 hand = uHead + vec2(cos(r1 * 6.2832), sin(r1 * 6.2832)) * (3. + 9. * r2);
+      float k = clamp((uKol.w - u) * 45. + 1., 0., 2.);
+      if (k < 1.) { p = mix(p, hand, k * k); a = mix(a, .9, k); }
+      else { float f = 1. - pow(2. - k, 3.); p = mix(hand, pts, f); a = .72 + .28 * r2; }
+    }
+    // once it is made, the kolam only breathes
+    p += vec2(sin(t * .6 + r1 * 6.2832), cos(t * .5 + r2 * 6.2832)) * .5 * uKol.z;
+    return vec3(R.xy + p, a);
+  }
   if (mode > 0.5 && mode < 1.5) {
     vec2 j = vec2(sin(t * 1.1 + r1 * 40.), cos(t * .9 + r2 * 40.)) * p1.w;
     return vec3(R.xy + pts + j, .68 + .32 * r1);
   }
-  if (mode > 2.5) {
-    // one core fanning out into six engine threads
+  if (mode > 2.5 && mode < 3.5) {
+    // one core fanning out into six engine threads; the chosen one flows, the others wait
     float lane = floor(r2 * 6.);
     float ly = h * (.1 + .16 * lane);
-    if (r3 < .1) return vec3(R.x + g * .6, R.y + h * (.1 + .8 * r1), .9);
+    float cy = h * .5;
+    if (r3 < .12) {
+      float a = r1 * 6.2832, rr = sqrt(fract(r2 * 7.13)) * h * .06;
+      return vec3(R.x + w * .03 + cos(a) * rr * .8, R.y + cy + sin(a) * rr, .9);
+    }
     bool on = abs(lane - uSel) < .5;
     float uu = on ? fract(u + t * .06) : u;
-    float reach = on ? 1. : .42 + .3 * fract(sin(lane * 12.9898) * 43758.55);
-    float x = 10. + uu * (w * p1.x - 10.) * reach;
-    float y = ly + (st - 3.) * h * .0026 + g * .3 + (on ? sin(uu * 18. - t * 3.) * h * .006 : 0.);
-    return vec3(R.x + x, R.y + y, on ? .95 : .55);
+    float x = mix(w * .03, w * p1.x, uu);
+    float bend = smoothstep(0., .62, uu);
+    float y = mix(cy, ly, bend) + (st - 3.) * h * .0026 * (.35 + .65 * bend) + g * .3 + (on ? sin(uu * 18. - t * 3.) * h * .006 * bend : 0.);
+    return vec3(R.x + x, R.y + y, on ? .95 : .5);
   }
   if (mode > 1.5) {
-    // data flows in from the left and stops at a soft membrane: it never leaves the boundary
+    // three deployments, one lane each, level with its table row. On premise and private cloud stop at the
+    // boundary; hybrid crosses it through one opening, as a thin strand. p1.xyz = lane heights, p1.w = lit lane
     float mx = w * .82;
+    float lane = floor(r2 * 3.);
+    float ly = h * (lane < .5 ? p1.x : lane < 1.5 ? p1.y : p1.z);
+    float gy = h * p1.z;
     vec2 p; float a = .9;
     if (r3 < .16) {
-      float yy = r1 * h;
+      float yy = mix(h * p1.x - 64., gy + 64., r1), d = yy - gy;
+      if (abs(d) < 16.) yy = gy + sign(d + .001) * (16. + abs(d) * 1.5);
       float bend = sin(yy / h * 3.14159) * w * .05 + sin(yy * .02 + t * .6) * 2.;
       p = vec2(mx + bend + g * .8, yy);
       a = .35 + .55 * sin(r1 * 3.14159);
     } else {
-      float x = u * mx;
-      float lane = k * .2 + .2;
-      float y = h * lane + sin(u * 5.5 + t * .4 + k * 1.7) * h * .055 + sin(u * 12. - t * .3 + k) * h * .015 + (st - 3.) * h * .0065;
+      bool through = lane > 1.5;
+      float x0 = w * .17, x = mix(x0, through ? w : mx, u);
+      float calm = through ? smoothstep(.55, .76, u) : 0.;
+      float y = ly + (sin(u * 5.5 + t * .4 + lane * 1.7) * h * .03 + (st - 3.) * h * .005) * (1. - .85 * calm);
       p = vec2(x, y);
-      vec2 m = R.xy + p - uMouse.xy; float md = length(m);
-      if (md < 150.) p += m / max(md, .001) * pow(1. - md / 150., 2.) * 70. * uMouse.z;
       float lim = mx + sin(p.y / h * 3.14159) * w * .05 - 6.;
-      p.x = min(p.x, lim - abs(g) * 1.5);
+      if (!through) p.x = min(p.x, lim - abs(g) * 1.5);
       a = .25 + .7 * smoothstep(0., .25, u);
+      if (p1.w > -.5 && abs(lane - p1.w) > .5) a *= .3;
     }
     return vec3(R.xy + p, a);
   }
@@ -98,10 +156,10 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts) {
     float lane = floor(r2 * 5.);
     float ly = h * (.14 + .18 * lane) + (st - 3.) * h * .0045 + sin(u * 7. + t * .5 + lane * 2.) * h * .025 + g * 1.4;
     yy = mix(yy, ly, fr);
-    a = mix(a, .92, fr);
+    a = mix(a, .92, fr) * (1. - smoothstep(.9, 1., u) * fr);
   }
   a *= os > 0. ? 1. : smoothstep(0., .14, u);
-  x *= 1. - .2 * p1.z;
+  x *= 1. - (.2 + p2.z) * p1.z;
   return vec3(R.x + x, R.y + yy, a);
 }
 
@@ -131,30 +189,62 @@ void main() {
   vec2 dir = B.xy - A.xy;
   // far apart: dissolve out and back in rather than fly across the words between
   float far = smoothstep(uFar, uFar + .5, length(dir) / uRes.y);
+  // the kolam never flies across the words below it: it unwinds where it lies, line first, and the wave of
+  // five systems grows in its place in the same order
+  if (uModeA > 3.5 || uModeB > 3.5) far = 1.;
   vec2 p = mix(mix(A.xy, B.xy, e), e < .5 ? A.xy : B.xy, far);
   float fade = mix(1., abs(1. - 2. * e), far);
+
   vec2 mid = (A.xy + B.xy) * .5;
   vec2 cur = vec2(sin(mid.y * .0045 + uTime * .3), cos(mid.x * .004 - uTime * .25));
   p += cur * sin(e * 3.14159) * min(42., length(dir) * .1) * (1. - far);
+  // flour lifts a little as it lets go, and settles a little as it lands
+  if (uModeA > 3.5 || uModeB > 3.5) p.y += (e < .5 ? -1. : 1.) * sin(e * 3.14159) * 16.;
   if (words) {
     float sw = sin(e * 3.14159);
     p += vec2(sin(aSeed.z * 31. + uTime * .7), cos(aSeed.w * 27. + uTime * .6)) * sw * 26.;
     fade *= 1. - .7 * sw;
   }
-  float push = mix(uModeA > 1.5 ? 0. : uModeA > .5 ? .3 : 1., uModeB > 1.5 ? 0. : uModeB > .5 ? .3 : 1., e) * uMouse.z;
+  float role = kolRole();
+  float kolW = mix(uModeA > 3.5 ? 1. : 0., uModeB > 3.5 ? 1. : 0., e);
+  float stiff = role > 1.5 ? .12 : role > .5 ? .3 : 1.;
+  float push = mix(uModeA > 3.5 ? 1. : uModeA > 1.5 ? 0. : uModeA > .5 ? .3 : 1., uModeB > 3.5 ? 1. : uModeB > 1.5 ? 0. : uModeB > .5 ? .3 : 1., e) * uMouse.z;
+  float wiped = 0.;
+#ifdef TRAIL
+  // a fingertip through flour: it parts the grains, and they settle back as the trail fades
+  if (kolW > 0.) {
+    vec2 uv = vec2(p.x / uRes.x, 1. - p.y / uRes.y), d = vec2(1. / 160., 1. / 100.);
+    float c0 = texture2D(uTrail, uv).r;
+    vec2 gr = vec2(texture2D(uTrail, uv + vec2(d.x, 0.)).r - texture2D(uTrail, uv - vec2(d.x, 0.)).r,
+                   texture2D(uTrail, uv - vec2(0., d.y)).r - texture2D(uTrail, uv + vec2(0., d.y)).r);
+    p -= gr * 80. * stiff * kolW;
+    wiped = c0 * kolW * (role > 1.5 ? .15 : .55);
+    push *= 1. - kolW;
+  }
+#endif
+  push *= mix(1., stiff, kolW);
   vec2 m = p - uMouse.xy; float md = length(m);
   if (md < 130. && push > 0.) p += m / max(md, .001) * pow(1. - md / 130., 2.) * 46. * push;
   float tone = toneAt(p.y);
   vec3 cA = colour(uCA, uColA, tone), cB = colour(uCB, uColB, tone);
   float lit = abs(floor(aSeed.w * 6.) - uSel) < .5 ? 1. : 0.;
-  if (uModeA > 2.5) { cA = lit > .5 ? threadCol(2., tone) : cA; A.z *= lit > .5 ? 1. : .38; }
-  if (uModeB > 2.5) { cB = lit > .5 ? threadCol(2., tone) : cB; B.z *= lit > .5 ? 1. : .38; }
+  if (uModeA > 2.5 && uModeA < 3.5) { cA = lit > .5 ? threadCol(2., tone) : cA; A.z *= lit > .5 ? 1. : .38; }
+  if (uModeB > 2.5 && uModeB < 3.5) { cB = lit > .5 ? threadCol(2., tone) : cB; B.z *= lit > .5 ? 1. : .38; }
+  vec3 flour = vec3(.93, .95, 1.);
+  if (uModeA > 3.5) cA = role > 1.5 ? threadCol(2., 1.) : flour;
+  if (uModeB > 3.5) cB = role > 1.5 ? threadCol(2., 1.) : flour;
+  bool hyb = floor(aSeed.w * 3.) > 1.5 && aSeed2.z >= .16;
+  if (uModeA > 1.5 && uModeA < 2.5 && hyb) cA = threadCol(3., tone);
+  if (uModeB > 1.5 && uModeB < 2.5 && hyb) cB = threadCol(3., tone);
   vec3 inkC = mix(vec3(.027, .106, .286), vec3(.93, .95, 1.), tone);
   vec3 cm = e < .5 ? mix(cA, inkC, smoothstep(0., .5, e)) : mix(inkC, cB, smoothstep(.5, 1., e));
-  vCol = vec4(uMix > 0. ? cm : cA, mix(A.z, B.z, e) * fade);
+  vCol = vec4(uMix > 0. ? cm : cA, mix(A.z, B.z, e) * fade * (1. - wiped));
   vec2 q = p / uRes * 2. - 1.;
   gl_Position = vec4(q.x, -q.y, 0., 1.);
-  gl_PointSize = mix(uCA.w > 0. ? uCA.w : aSeed2.w, uCB.w > 0. ? uCB.w : aSeed2.w, e) * uDpr;
+  // in the kolam a few grains of flour float close to the eye, larger and fainter
+  float near = role < .5 && aSeed2.x > 1.9 ? 2.4 : 1.;
+  if (near > 1.) vCol.a *= mix(1., .45, kolW);
+  gl_PointSize = mix(uCA.w > 0. ? uCA.w : aSeed2.w, uCB.w > 0. ? uCB.w : aSeed2.w, e) * mix(1., near, kolW) * uDpr;
 }`;
 
 const FS = `
@@ -166,6 +256,23 @@ void main() {
   gl_FragColor = vec4(vCol.rgb * a, a);
 }`;
 
+// The finger's trail: a small texture that remembers where the pointer went and fades it out over about two seconds
+const TVS = `attribute vec2 aQ; void main() { gl_Position = vec4(aQ, 0., 1.); }`;
+const TFS = `
+precision mediump float;
+uniform sampler2D uPrev;
+uniform vec2 uSize, uRes;
+uniform vec4 uSeg;
+uniform float uAmt;
+void main() {
+  vec2 uv = gl_FragCoord.xy / uSize;
+  float prev = max(0., texture2D(uPrev, uv).r * .975 - .004);
+  vec2 p = vec2(uv.x, 1. - uv.y) * uRes, a = uSeg.xy, ab = uSeg.zw - a;
+  float h = clamp(dot(p - a, ab) / max(dot(ab, ab), 1e-3), 0., 1.);
+  float s = (1. - smoothstep(0., 56., length(p - a - ab * h))) * uAmt;
+  gl_FragColor = vec4(min(1., prev + s * .3), 0., 0., 1.);
+}`;
+
 const ORANGE = [1, 0.42, 0.102];
 const DOT = 3.6; // dot size for type: big enough to read as dots, with clear gaps between
 
@@ -173,17 +280,25 @@ export function createWave(canvas, { reduced = false } = {}) {
   const gl = canvas.getContext('webgl', { antialias: false, alpha: true, premultipliedAlpha: true, powerPreference: 'high-performance' });
   if (!gl) return null;
   const compile = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
-  const prog = gl.createProgram();
-  gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
-  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
-  gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.warn(gl.getProgramInfoLog(prog)); return null; }
+  const link = (vs, fs, bind) => {
+    const p = gl.createProgram();
+    gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
+    gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+    if (bind) gl.bindAttribLocation(p, 7, bind);
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) { console.warn(gl.getProgramInfoLog(p)); return null; }
+    return p;
+  };
+  const trailOk = !reduced && gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) > 0;
+  const prog = link((trailOk ? '#define TRAIL 1\n' : '') + VS, FS);
+  if (!prog) return null;
   gl.useProgram(prog);
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
   const narrow = innerWidth < 760;
-  const N = narrow ? 13000 : innerWidth < 1200 ? 21000 : 30000;
+  // enough grains that the kolam's line reads as one line of flour, not a dotted one
+  const N = narrow ? 18000 : innerWidth < 1200 ? 30000 : 42000;
 
   // seeds
   let seed = 11;
@@ -212,7 +327,7 @@ export function createWave(canvas, { reduced = false } = {}) {
   const zero = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, zero); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(N * 2), gl.STATIC_DRAW);
   const U_ = {};
-  for (const n of ['uRes', 'uDpr', 'uTime', 'uMix', 'uApprove', 'uModeA', 'uModeB', 'uRectA', 'uRectB', 'uP1A', 'uP1B', 'uP2A', 'uP2B', 'uColA', 'uColB', 'uMouse', 'uBand', 'uBandTone', 'uCA', 'uCB', 'uFar', 'uSel']) U_[n] = gl.getUniformLocation(prog, n);
+  for (const n of ['uRes', 'uDpr', 'uTime', 'uMix', 'uApprove', 'uModeA', 'uModeB', 'uRectA', 'uRectB', 'uP1A', 'uP1B', 'uP2A', 'uP2B', 'uColA', 'uColB', 'uMouse', 'uBand', 'uBandTone', 'uCA', 'uCB', 'uFar', 'uSel', 'uKol', 'uHead', 'uTrail']) U_[n] = gl.getUniformLocation(prog, n);
 
   // ---------- point shapes: a word or the logo, sampled to exactly N targets ----------
   const scratch = document.createElement('canvas');
@@ -297,6 +412,54 @@ export function createWave(canvas, { reduced = false } = {}) {
     }, (r, g, b) => (r > 180 && g < 190 && b < 120 ? 1 : g > r + 40 && g > b ? 2 : 0));
   }
 
+  // ---------- the kolam ----------
+  // the line goes to the blue and orange threads, in order along it, so it unthreads into the wave the same way;
+  // the pulli are small hand-dropped heaps of the navy thread, none quite round
+  const KOL = kolam({ rows: narrow ? 5 : 7, seed: 3 });
+  const KN = KOL.path.length / 3;
+  const kext = ((KOL.rows - 1) / 2) * Math.SQRT2 + 0.56;
+  // the hand slows on the curves: time along the line, from how sharply each step turns
+  const pace = new Float32Array(KN + 1);
+  for (let i = 0; i < KN; i++) pace[i + 1] = pace[i] + 1 + Math.min(4, KOL.path[i * 3 + 2] * 60);
+  for (let i = 0; i <= KN; i++) pace[i] /= pace[KN];
+  const drawAt = (tau) => {
+    if (tau <= 0) return 0; if (tau >= 1) return 1;
+    let lo = 0, hi = KN;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (pace[m] < tau) lo = m; else hi = m; }
+    return (lo + (tau - pace[lo]) / Math.max(1e-6, pace[hi] - pace[lo])) / KN;
+  };
+  const pathAt = (u) => {
+    const f = ((u % 1) + 1) % 1 * KN, i = Math.floor(f) % KN, j = (i + 1) % KN, t = f - Math.floor(f);
+    return [KOL.path[i * 3] + (KOL.path[j * 3] - KOL.path[i * 3]) * t, KOL.path[i * 3 + 1] + (KOL.path[j * 3 + 1] - KOL.path[i * 3 + 1]) * t];
+  };
+  function kolamShape(s) {
+    const r = s.el.getBoundingClientRect(), b = (s.box || s.el).getBoundingClientRect();
+    const sc = Math.min(b.width, b.height) / (2 * kext), sp = sc;
+    const cx = b.left - r.left + b.width / 2, cy = b.top - r.top + b.height / 2;
+    s.p1 = [cx, cy, kext * sc, sp];
+    s.kol = { cx, cy, sc };
+    const out = new Float32Array(N * 2), nd = KOL.dots.length;
+    let hs = 5;
+    const hr = () => ((hs = (hs * 16807) % 2147483647) - 1) / 2147483646;
+    const heaps = KOL.dots.map(([x, y]) => ({ x: cx + (x + (hr() - 0.5) * 0.05) * sc, y: cy + (y + (hr() - 0.5) * 0.05) * sc, ph: hr() * TAU, ph2: hr() * TAU, sq: 0.92 + hr() * 0.16 }));
+    for (let i = 0; i < N; i++) {
+      const k = K[i], r1 = S1[i * 4 + 2], r3 = S2[i * 4 + 2];
+      if (k === 1 || k === 2) {
+        const u = U[i], [x, y] = pathAt(u), [x2, y2] = pathAt(u + 1 / KN);
+        let nx = -(y2 - y), ny = x2 - x; const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
+        // a hand-drawn line wanders a little and is never one even width
+        const wob = Math.sin(u * TAU * 9 + 1.3) * 0.7 + Math.sin(u * TAU * 23 + 0.4) * 0.35;
+        const off = wob + S2[i * 4] * (0.75 + 0.35 * Math.sin(u * TAU * 5));
+        out[i * 2] = cx + x * sc + nx * off; out[i * 2 + 1] = cy + y * sc + ny * off;
+      } else if (k === 0 && r3 < 0.55) {
+        const hp = heaps[Math.floor(r1 * nd) % nd], a = J[i * 3] * TAU;
+        const rad = sp * 0.05 * Math.sqrt(-2 * Math.log(Math.max(0.06, J[i * 3 + 1]))) * (1 + 0.08 * Math.sin(3 * a + hp.ph) + 0.05 * Math.sin(5 * a + hp.ph2));
+        out[i * 2] = hp.x + Math.cos(a) * rad * hp.sq; out[i * 2 + 1] = hp.y + Math.sin(a) * rad / hp.sq;
+      }
+    }
+    return out;
+  }
+
   // ---------- states, in page order ----------
   // wave: p1 = tilt, amplitude, fray, voice; p2 = navy mass, y shift, -, overscan. Colours follow the ground.
   const INK = [-1, 0, 0];
@@ -305,8 +468,23 @@ export function createWave(canvas, { reduced = false } = {}) {
   const push = (el, cfg, extra = {}) => { if (el) states.push({ el, ...cfg, ...extra, h0: 0, h1: 0, buf: null }); };
   const sec = (id) => document.getElementById(id);
   const stageOf = (s) => s && s.querySelector('[data-stage]');
-  push(stageOf(sec('top')), narrow ? W(0.5, 0.9, 0, 1, 0, -0.3, 0.08) : W(1, 1, 0, 1, 0, -0.04, 0.12), { name: 'hero', sec: sec('top') });
-  push(stageOf(sec('problem')), W(0.15, 0.6, 1, 0, 0, -0.3, 0, [0.85, 2, 0, 0]), { name: 'scatter', sec: sec('problem') });
+  push(stageOf(sec('top')), { mode: 4, p1: [0, 0, 1, 1], p2: [0, 0, 0, 0], col: INK, c: [0, 0, 0, 0] }, { name: 'hero', sec: sec('top'), box: sec('top')?.querySelector('[data-kolam]') });
+  const hero = states[0] && states[0].mode === 4 ? states[0] : null;
+  const scatter = W(0.15, 0.6, 1, 0, 0, -0.3, 0, [0.85, 2, 0, 0]);
+  scatter.p2[2] = narrow ? 0.22 : 0.06; // on the phone the streams stop short, leaving a column for the labels
+  push(stageOf(sec('problem')), scatter, { name: 'scatter', sec: sec('problem'), enter: hero ? 0.3 : 0.6 });
+  // the decision loop: one ring with five stations on it
+  const ring = (c, W, H) => {
+    const m = Math.min(W, H), R = m * 0.4;
+    c.strokeStyle = c.fillStyle = '#000';
+    c.lineWidth = m * 0.024;
+    c.beginPath(); c.arc(W / 2, H / 2, R, 0, TAU); c.stroke();
+    for (let i = 0; i < 5; i++) {
+      const a = (i * 72 - 90) * Math.PI / 180;
+      c.beginPath(); c.arc(W / 2 + Math.cos(a) * R, H / 2 + Math.sin(a) * R, m * 0.034, 0, TAU); c.fill();
+    }
+  };
+  push(stageOf(sec('loop')), { mode: 1, p1: [0, 0, 0, reduced ? 0 : 0.7], p2: [0, 0, 0, 0], col: INK, c: [1, 0, 0, DOT] }, { name: 'loop', draw: ring, pinned: true, sec: sec('loop') });
   const caseStage = stageOf(sec('account'));
   const words = caseStage ? JSON.parse(caseStage.dataset.words || '[]') : [];
   words.forEach((word, i) => {
@@ -315,7 +493,8 @@ export function createWave(canvas, { reduced = false } = {}) {
       { name: 'case' + i, word, sec: sec('account'), step: i, steps: words.length });
   });
   push(stageOf(sec('engines')), { mode: 3, p1: [narrow ? 0.48 : 0.72, 0, 0, 0], p2: [0, 0, 0, 0], col: INK, c: [1, 0, 0, 0] }, { name: 'engines', sec: sec('engines') });
-  push(stageOf(sec('security')), { mode: 2, p1: [0, 0, 0, 0], p2: [0, 0, 0, 0], col: INK, c: [1, 2, 0, 0] }, { name: 'trust', sec: sec('security') });
+  push(stageOf(sec('security')), { mode: 2, p1: [0.25, 0.5, 0.75, -1], p2: [0, 0, 0, 0], col: INK, c: [1, 0, 0, 0] }, { name: 'trust', sec: sec('security') });
+  const trust = states[states.length - 1];
   push(stageOf(sec('pilot')), W(0.6, 0.8, 0, 0, 0, 0.02, 0.12), { name: 'cta', sec: sec('pilot') });
   const foot = document.querySelector('.foot');
   push(stageOf(foot), { mode: 1, p1: [0, 0, 0, reduced ? 0 : 0.25], p2: [0, 0, 0, 0], col: INK, c: [1, 1, 0, DOT] }, { name: 'foot', logo: true, sec: foot });
@@ -334,21 +513,24 @@ export function createWave(canvas, { reduced = false } = {}) {
       } else {
         // a shape changes while the next chapter's edge crosses the middle of the screen, and is done by then
         // a shape holds while its stage is on screen and hands over as the next stage rises into view
-        const st = s.el.getBoundingClientRect().top + y;
-        s.h0 = st - vh * 0.6;
+        // a stage inside a sticky pin is measured from its section, so a resize mid-scroll cannot shift it
+        const topOf = (n) => (n.pinned ? n.sec : n.el).getBoundingClientRect().top + y;
+        const st = topOf(s);
+        s.h0 = st - vh * (s.enter ?? 0.6);
         const next = states.slice(states.indexOf(s) + 1).find((n) => n.sec !== s.sec);
-        const nt = !next ? top + hgt : next.step !== undefined ? next.sec.getBoundingClientRect().top + y + vh * 0.2 : next.el.getBoundingClientRect().top + y;
+        const nt = !next ? top + hgt : next.step !== undefined ? next.sec.getBoundingClientRect().top + y + vh * 0.2 : topOf(next);
         s.h1 = Math.max(s.h0, nt - vh * 0.92);
       }
     }
-    states[0].h0 = -1e9; states[0].h1 = Math.min(states[0].h1, vh * 0.28);
+    // the kolam starts to unthread almost at once, and is the wave of five systems by the time they are read
+    states[0].h0 = -1e9; states[0].h1 = Math.min(states[0].h1, vh * (hero ? 0.04 : 0.28));
     states[states.length - 1].h1 = 1e9;
   }
   function buildShapes() {
     for (const s of states) {
-      if (s.mode !== 1) continue;
+      if (s.mode !== 1 && s.mode !== 4) continue;
       const r = s.el.getBoundingClientRect();
-      const data = s.logo ? logoShape(r.width, r.height) : wordShape(s.word, r.width, r.height);
+      const data = s.mode === 4 ? kolamShape(s) : s.draw ? sample(r.width, r.height, s.draw) : s.logo ? logoShape(r.width, r.height) : wordShape(s.word, r.width, r.height);
       if (!s.buf) s.buf = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, s.buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
     }
@@ -360,6 +542,15 @@ export function createWave(canvas, { reduced = false } = {}) {
     canvas.width = Math.round(vw * dpr); canvas.height = Math.round((canvas.clientHeight || vh) * dpr);
     gl.viewport(0, 0, canvas.width, canvas.height);
     ranges();
+    if (trust && trust.el) {
+      const r = trust.el.getBoundingClientRect(), rows = [...document.querySelectorAll('.deploy tbody tr')];
+      rows.forEach((row, i) => {
+        const b = row.getBoundingClientRect();
+        const f = narrow || !r.height ? 0.22 + 0.28 * i : clamp((b.top + b.height / 2 - r.top) / r.height, 0.05, 0.95);
+        trust.p1[i] = f;
+        trust.el.style.setProperty('--y' + i, (f * 100).toFixed(2) + '%');
+      });
+    }
     if (rebuild || built.w !== innerWidth) buildShapes();
   }
 
@@ -382,7 +573,67 @@ export function createWave(canvas, { reduced = false } = {}) {
   addEventListener('pointerdown', move, { passive: true });
   document.documentElement.addEventListener('pointerleave', () => { mouse.last = -1e9; });
 
+  // ---------- the finger's trail ----------
+  const TW = 160, TH = 100;
+  let trail = null;
+  if (trailOk) {
+    const tp = link(TVS, TFS, 'aQ');
+    const mk = () => {
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, TW, TH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      const fb = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+      const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      return ok ? { tex, fb } : null;
+    };
+    const a = tp && mk(), b = tp && mk();
+    if (a && b) {
+      const quad = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      const u = {};
+      for (const n of ['uPrev', 'uSize', 'uRes', 'uSeg', 'uAmt']) u[n] = gl.getUniformLocation(tp, n);
+      trail = { prog: tp, quad, u, src: a, dst: b, px: -1e4, py: -1e4 };
+    }
+  }
+  function stepTrail(amt) {
+    const T = trail;
+    gl.useProgram(T.prog);
+    gl.disable(gl.BLEND);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, T.dst.fb);
+    gl.viewport(0, 0, TW, TH);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, T.src.tex);
+    gl.uniform1i(T.u.uPrev, 0);
+    gl.uniform2f(T.u.uSize, TW, TH);
+    gl.uniform2f(T.u.uRes, vw, vh);
+    gl.uniform4f(T.u.uSeg, T.px, T.py, mouse.x, mouse.y);
+    gl.uniform1f(T.u.uAmt, amt);
+    gl.bindBuffer(gl.ARRAY_BUFFER, T.quad);
+    gl.enableVertexAttribArray(7);
+    gl.vertexAttribPointer(7, 2, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.disableVertexAttribArray(7);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    [T.src, T.dst] = [T.dst, T.src];
+    T.px = mouse.x; T.py = mouse.y;
+    gl.useProgram(prog);
+    gl.enable(gl.BLEND);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.bindTexture(gl.TEXTURE_2D, T.src.tex);
+    gl.uniform1i(U_.uTrail, 0);
+  }
+
   // ---------- frame ----------
+  // the kolam's opening is set from outside (main.js runs it with her words); finished by default
+  const intro = { gather: 0, amp: 0, settle: 1, tau: 1 };
   let approve = 0, sel = 0, t0 = performance.now(), last = t0;
   const set4 = (n, v) => gl.uniform4f(U_[n], v[0], v[1], v[2], v[3]);
   function bindState(s, which, rect) {
@@ -404,10 +655,22 @@ export function createWave(canvas, { reduced = false } = {}) {
     const [ia, ib, f] = locate(scrollY);
     const A = states[ia], B = states[ib];
     const ra = A.el.getBoundingClientRect(), rb = ib !== ia ? B.el.getBoundingClientRect() : ra;
-    gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
     // nothing on screen to draw: both shapes are well outside the viewport
     const off = (r) => r.bottom < -vh * 0.4 || r.top > vh * 1.4;
-    if (off(ra) && (ib === ia || off(rb))) return { a: A, b: B, f };
+    const idle = off(ra) && (ib === ia || off(rb));
+    const kol = !idle && (A.mode === 4 || B.mode === 4);
+    if (trail && kol) {
+      const moved = Math.hypot(mouse.x - trail.px, mouse.y - trail.py);
+      stepTrail(trail.px < -1e3 ? 0 : Math.max(0.2 * mouse.s, Math.min(1, moved / 8)) * (mouse.x < -1e3 ? 0 : 1));
+    }
+    gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+    if (idle) return { a: A, b: B, f };
+    if (hero && hero.kol) {
+      const [hx, hy] = pathAt(drawAt(intro.tau));
+      gl.uniform2f(U_.uHead, hero.kol.cx + hx * hero.kol.sc, hero.kol.cy + hy * hero.kol.sc);
+      // a touch past the end, so the last grains are laid down rather than left in the hand
+      gl.uniform4f(U_.uKol, intro.gather, intro.amp, intro.settle, drawAt(intro.tau) * (1 + 1 / 40));
+    }
     // the grounds in view, so each dot takes the ink of whatever it is passing over
     const edges = [1e5, 1e5, 1e5], tones = [0, 0, 0, 0];
     let n = -1;
@@ -450,6 +713,8 @@ export function createWave(canvas, { reduced = false } = {}) {
     render, ready, states,
     setApprove(v) { approve = v; },
     setEngine(i) { sel = i; },
+    setDeploy(i) { if (trust) trust.p1[3] = i; },
+    setIntro(v) { Object.assign(intro, v); },
     relayout: () => layout(true),
   };
 }
