@@ -79,6 +79,8 @@
   body{background:var(--color-white);color:var(--color-ink);font-family:var(--font-sans);font-size:var(--text-body);line-height:1.55;
     -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;-webkit-tap-highlight-color:transparent;overflow-x:clip}
   h1,h2,h3{font-weight:700;line-height:1.02;letter-spacing:-.035em;text-wrap:balance;color:var(--color-navy)}
+  /* one display voice for every chapter title, the hero's included */
+  h1,h2{font-weight:600;letter-spacing:-.04em}
   h2{font-size:var(--text-head)}
   h3{font-size:var(--text-lead);line-height:1.2;letter-spacing:-.02em}
   p{text-wrap:pretty}
@@ -106,6 +108,8 @@
   .rv .fade{opacity:0;transform:translateY(16px);transition:opacity 800ms var(--ease-out),transform 800ms var(--ease-out);transition-delay:var(--d,120ms)}
   .rv .fade.in{opacity:1;transform:none}
   .split-line{display:block}
+  /* the mask each line rises out of: tall enough for descenders, with the extra height taken back */
+  .reveal :has(> .split-line){padding-bottom:.14em;margin-bottom:-.14em}
   .voice .w{display:inline-block;white-space:pre}
 
   /* Pinned scenes: one card of words shows at a time, swapped by script */

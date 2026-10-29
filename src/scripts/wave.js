@@ -17,6 +17,7 @@ attribute vec4 aSeed;   // thread, u, r1, r2
 attribute vec4 aSeed2;  // gaussian, strand, r3, size
 attribute vec2 aFrom;
 attribute vec2 aTo;
+attribute float aShard; // which of the five pieces of the kolam this grain breaks away with
 uniform vec2 uRes;
 uniform float uDpr, uTime, uMix, uApprove;
 uniform float uModeA, uModeB;
@@ -30,6 +31,10 @@ uniform vec3 uBand;      // viewport y of up to three ground edges
 uniform vec4 uBandTone;  // tone (0 light, 1 navy) of the ground above, between and below them
 uniform vec4 uKol;       // the kolam's opening: voice gathers the flour, its loudness, the pulli settle, the line is drawn
 uniform vec2 uHead;      // the drawing hand, in the kolam's stage
+uniform vec4 uPc[5];     // each broken piece: where it landed (x, y) and its centre in the kolam (z, w), px
+uniform float uPr[5];    // and the turn it landed with
+uniform float uJoin;     // 0 broken, 1 held back together by the visitor
+uniform vec3 uHome;      // where the joined kolam forms, in the pieces' stage (x, y), and how much larger than its pieces (z)
 varying vec4 vCol;
 
 // in the kolam, blue and orange threads make the one line, part of the navy thread makes the pulli, the rest is loose flour
@@ -46,6 +51,31 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts) {
   float k = aSeed.x, u = aSeed.y, r1 = aSeed.z, r2 = aSeed.w;
   float g = aSeed2.x, st = aSeed2.y, r3 = aSeed2.z;
   float t = uTime, w = R.z, h = R.w;
+  if (mode > 4.5) {
+    // the kolam in five pieces, each kept by one system; pts = this grain's place in its piece.
+    // The loose flour hangs in the air of the screen, not the page, so the pieces scroll past it.
+    float role = kolRole();
+    if (role < .5) {
+      vec2 b0 = vec2(r1, r2) * uRes;
+      vec2 dust = b0 + vec2(sin(b0.y * .0052 + t * .11 + r3 * 6.), cos(b0.x * .0047 - t * .09 + r1 * 6.)) * 22.;
+      return vec3(dust, (.16 + .3 * r1) * .5 * step(.5, fract(r2 * 7.)));
+    }
+    vec2 p = pts;
+    if (uJoin > 0.) {
+      // held together: undo the piece's landing, so it goes home to its place in one kolam at the stage's centre
+      vec4 pc = uPc[0]; float ro = uPr[0];
+      for (int k = 1; k < 5; k++) if (abs(aShard - float(k)) < .5) { pc = uPc[k]; ro = uPr[k]; }
+      vec2 d = pts - pc.xy;
+      float cs = cos(ro), sn = sin(ro);
+      float jj = clamp(uJoin * 1.24 - aShard * .06, 0., 1.);
+      jj = jj * jj * (3. - 2. * jj);
+      // it grows as it closes, so the whole ends larger than the pieces it was made from
+      vec2 home = uHome.xy + (vec2(d.x * cs + d.y * sn, -d.x * sn + d.y * cs) + pc.zw) * mix(1., uHome.z, jj);
+      p = mix(p, home, jj);
+    }
+    p += vec2(sin(t * .6 + r1 * 6.2832), cos(t * .5 + r2 * 6.2832)) * .5;
+    return vec3(R.xy + p, role > 1.5 ? .72 + .28 * r2 : .62 + .38 * r1);
+  }
   if (mode > 3.5) {
     // p1 = kolam centre x, y, radius, pulli spacing (px in the stage); pts = this dot's place in the kolam
     float role = kolRole();
@@ -74,7 +104,8 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts) {
     } else {
       // loose flour settles back into the air, and thins once the line is done so the kolam carries the screen
       p = mix(p, dust, back);
-      a = mix(a, (.16 + .3 * r1) * (1. - .45 * uKol.w), back);
+      // half the loose flour settles out of sight once the kolam is made, so the air stays clear around it
+      a = mix(a, (.16 + .3 * r1) * (1. - .45 * uKol.w) * mix(1., step(.5, fract(r2 * 7.)), uKol.w), back);
     }
     if (role > 1.5) {
       // the line: flour swirls in to the hand just before it is laid down behind it
@@ -184,7 +215,11 @@ vec3 colour(vec4 C, vec3 col, float tone) {
 void main() {
   // dots leave in order along the wave (left first), so a shape peels away as a stream, not a cloud
   bool words = uModeA > .5 && uModeA < 1.5 && uModeB > .5 && uModeB < 1.5;
-  float e = words ? clamp(uMix * 1.35 - aSeed2.z * .35, 0., 1.) : clamp(uMix * 1.7 - (aSeed.y * .55 + aSeed2.z * .15), 0., 1.);
+  // the kolam breaking: the pieces come away one after another, each as a body of grains
+  bool shatter = uModeA > 3.5 && uModeA < 4.5 && uModeB > 4.5;
+  float e = words ? clamp(uMix * 1.35 - aSeed2.z * .35, 0., 1.)
+    : shatter ? clamp(uMix * 1.48 - aShard * .12, 0., 1.)
+    : clamp(uMix * 1.7 - (aSeed.y * .55 + aSeed2.z * .15), 0., 1.);
   e = e < .5 ? 4. * e * e * e : 1. - pow(-2. * e + 2., 3.) / 2.;
   vec3 A = shape(uModeA, uRectA, uP1A, uP2A, aFrom);
   vec3 B = uMix > 0. ? shape(uModeB, uRectB, uP1B, uP2B, aTo) : A;
@@ -193,12 +228,18 @@ void main() {
   float far = smoothstep(uFar, uFar + .5, length(dir) / uRes.y);
   // the kolam never flies across the words below it: it unwinds where it lies, line first, and the wave of
   // five systems grows in its place in the same order
-  if (uModeA > 3.5 || uModeB > 3.5) far = 1.;
+  // (except when it breaks: then each piece is carried, whole, to the system that keeps it. Where the
+  // layout is stacked the words lie between, so there the pieces fade out and re-form in place: p1.x of the state)
+  if (uModeA > 3.5 || uModeB > 3.5) far = shatter ? uP1B.x : 1.;
   vec2 p = mix(mix(A.xy, B.xy, e), e < .5 ? A.xy : B.xy, far);
   float fade = mix(1., abs(1. - 2. * e), far);
+  // in the air the flour thins, and gathers again as it lands
+  if (shatter) fade *= 1. - .25 * sin(e * 3.14159);
 
   vec2 mid = (A.xy + B.xy) * .5;
   vec2 cur = vec2(sin(mid.y * .0045 + uTime * .3), cos(mid.x * .004 - uTime * .25));
+  // a piece is carried whole, so its current is read at the piece, not at each grain
+  if (shatter) cur = vec2(sin(aShard * 1.7 + uTime * .3), cos(aShard * 2.3 - uTime * .25));
   p += cur * sin(e * 3.14159) * min(42., length(dir) * .1) * (1. - far);
   // flour lifts a little as it lets go, and settles a little as it lands
   if (uModeA > 3.5 || uModeB > 3.5) p.y += (e < .5 ? -1. : 1.) * sin(e * 3.14159) * 16.;
@@ -232,14 +273,18 @@ void main() {
   float lit = abs(floor(aSeed.w * 6.) - uSel) < .5 ? 1. : 0.;
   if (uModeA > 2.5 && uModeA < 3.5) { cA = lit > .5 ? threadCol(2., tone) : cA; A.z *= lit > .5 ? 1. : .38; }
   if (uModeB > 2.5 && uModeB < 3.5) { cB = lit > .5 ? threadCol(2., tone) : cB; B.z *= lit > .5 ? 1. : .38; }
-  vec3 flour = vec3(.93, .95, 1.);
-  if (uModeA > 3.5) cA = role > 1.5 ? threadCol(2., 1.) : flour;
-  if (uModeB > 3.5) cB = role > 1.5 ? threadCol(2., 1.) : flour;
+  // the kolam is rice flour: the pulli white, the line a cooler ice. One strand is orange, the stretch of
+  // line that breaks away with her words (piece 4, the call recordings), so the eye can follow it down
+  vec3 flour = vec3(.93, .95, 1.), ice = vec3(.78, .85, .98);
+  vec3 lineCol = abs(aShard - 4.) < .5 ? threadCol(2., 1.) : ice;
+  if (uModeA > 3.5) cA = role > 1.5 ? lineCol : flour;
+  if (uModeB > 3.5) cB = role > 1.5 ? lineCol : flour;
   bool hyb = floor(aSeed.w * 3.) > 1.5 && aSeed2.z >= .16;
   if (uModeA > 1.5 && uModeA < 2.5 && hyb) cA = threadCol(3., tone);
   if (uModeB > 1.5 && uModeB < 2.5 && hyb) cB = threadCol(3., tone);
   vec3 inkC = mix(vec3(.027, .106, .286), vec3(.93, .95, 1.), tone);
-  vec3 cm = e < .5 ? mix(cA, inkC, smoothstep(0., .5, e)) : mix(inkC, cB, smoothstep(.5, 1., e));
+  // a piece of the kolam keeps its colours in flight; other shapes pass through the ink of the ground
+  vec3 cm = shatter ? mix(cA, cB, e) : e < .5 ? mix(cA, inkC, smoothstep(0., .5, e)) : mix(inkC, cB, smoothstep(.5, 1., e));
   vCol = vec4(uMix > 0. ? cm : cA, mix(A.z, B.z, e) * fade * (1. - wiped));
   vec2 q = p / uRes * 2. - 1.;
   gl_Position = vec4(q.x, -q.y, 0., 1.);
@@ -329,7 +374,7 @@ export function createWave(canvas, { reduced = false } = {}) {
   const zero = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, zero); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(N * 2), gl.STATIC_DRAW);
   const U_ = {};
-  for (const n of ['uRes', 'uDpr', 'uTime', 'uMix', 'uApprove', 'uModeA', 'uModeB', 'uRectA', 'uRectB', 'uP1A', 'uP1B', 'uP2A', 'uP2B', 'uColA', 'uColB', 'uMouse', 'uBand', 'uBandTone', 'uCA', 'uCB', 'uFar', 'uSel', 'uKol', 'uHead', 'uTrail']) U_[n] = gl.getUniformLocation(prog, n);
+  for (const n of ['uRes', 'uDpr', 'uTime', 'uMix', 'uApprove', 'uModeA', 'uModeB', 'uRectA', 'uRectB', 'uP1A', 'uP1B', 'uP2A', 'uP2B', 'uColA', 'uColB', 'uMouse', 'uBand', 'uBandTone', 'uCA', 'uCB', 'uFar', 'uSel', 'uKol', 'uHead', 'uTrail', 'uPc', 'uPr', 'uJoin', 'uHome']) U_[n] = gl.getUniformLocation(prog, n);
 
   // ---------- point shapes: a word or the logo, sampled to exactly N targets ----------
   const scratch = document.createElement('canvas');
@@ -417,7 +462,7 @@ export function createWave(canvas, { reduced = false } = {}) {
   // ---------- the kolam ----------
   // the line goes to the blue and orange threads, in order along it, so it unthreads into the wave the same way;
   // the pulli are small hand-dropped heaps of the navy thread, none quite round
-  const KOL = kolam({ rows: narrow ? 5 : 7, seed: 3 });
+  const KOL = kolam({ rows: narrow ? 5 : 7, seed: 3, wall: 0.2 });
   const KN = KOL.path.length / 3;
   const kext = ((KOL.rows - 1) / 2) * Math.SQRT2 + 0.56;
   // the hand slows on the curves: time along the line, from how sharply each step turns
@@ -434,30 +479,89 @@ export function createWave(canvas, { reduced = false } = {}) {
     const f = ((u % 1) + 1) % 1 * KN, i = Math.floor(f) % KN, j = (i + 1) % KN, t = f - Math.floor(f);
     return [KOL.path[i * 3] + (KOL.path[j * 3] - KOL.path[i * 3]) * t, KOL.path[i * 3 + 1] + (KOL.path[j * 3 + 1] - KOL.path[i * 3 + 1]) * t];
   };
-  function kolamShape(s) {
-    const r = s.el.getBoundingClientRect(), b = (s.box || s.el).getBoundingClientRect();
-    const sc = Math.min(b.width, b.height) / (2 * kext), sp = sc;
-    const cx = b.left - r.left + b.width / 2, cy = b.top - r.top + b.height / 2;
-    s.p1 = [cx, cy, kext * sc, sp];
-    s.kol = { cx, cy, sc };
-    const out = new Float32Array(N * 2), nd = KOL.dots.length;
-    let hs = 5;
-    const hr = () => ((hs = (hs * 16807) % 2147483647) - 1) / 2147483646;
-    const heaps = KOL.dots.map(([x, y]) => ({ x: cx + (x + (hr() - 0.5) * 0.05) * sc, y: cy + (y + (hr() - 0.5) * 0.05) * sc, ph: hr() * TAU, ph2: hr() * TAU, sq: 0.92 + hr() * 0.16 }));
+  let hs = 5;
+  const hr = () => ((hs = (hs * 16807) % 2147483647) - 1) / 2147483646;
+  const HEAPS = KOL.dots.map(([x, y]) => ({ x: x + (hr() - 0.5) * 0.05, y: y + (hr() - 0.5) * 0.05, ph: hr() * TAU, ph2: hr() * TAU, sq: 0.92 + hr() * 0.16 }));
+  const isLine = (i) => K[i] === 1 || K[i] === 2, isPulli = (i) => K[i] === 0 && S2[i * 4 + 2] < 0.55;
+  const heapOf = (i) => Math.floor(S1[i * 4 + 2] * HEAPS.length) % HEAPS.length;
+  // every grain's place round the kolam's centre at scale sc, in px; loose flour is left at 0
+  function kolamLocal(sc) {
+    const out = new Float32Array(N * 2);
     for (let i = 0; i < N; i++) {
-      const k = K[i], r1 = S1[i * 4 + 2], r3 = S2[i * 4 + 2];
-      if (k === 1 || k === 2) {
+      if (isLine(i)) {
         const u = U[i], [x, y] = pathAt(u), [x2, y2] = pathAt(u + 1 / KN);
         let nx = -(y2 - y), ny = x2 - x; const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
         // a hand-drawn line wanders a little and is never one even width
         const wob = Math.sin(u * TAU * 9 + 1.3) * 0.7 + Math.sin(u * TAU * 23 + 0.4) * 0.35;
         const off = wob + S2[i * 4] * (0.75 + 0.35 * Math.sin(u * TAU * 5));
-        out[i * 2] = cx + x * sc + nx * off; out[i * 2 + 1] = cy + y * sc + ny * off;
-      } else if (k === 0 && r3 < 0.55) {
-        const hp = heaps[Math.floor(r1 * nd) % nd], a = J[i * 3] * TAU;
-        const rad = sp * 0.05 * Math.sqrt(-2 * Math.log(Math.max(0.06, J[i * 3 + 1]))) * (1 + 0.08 * Math.sin(3 * a + hp.ph) + 0.05 * Math.sin(5 * a + hp.ph2));
-        out[i * 2] = hp.x + Math.cos(a) * rad * hp.sq; out[i * 2 + 1] = hp.y + Math.sin(a) * rad / hp.sq;
+        out[i * 2] = x * sc + nx * off; out[i * 2 + 1] = y * sc + ny * off;
+      } else if (isPulli(i)) {
+        const hp = HEAPS[heapOf(i)], a = J[i * 3] * TAU;
+        const rad = sc * 0.05 * Math.sqrt(-2 * Math.log(Math.max(0.06, J[i * 3 + 1]))) * (1 + 0.08 * Math.sin(3 * a + hp.ph) + 0.05 * Math.sin(5 * a + hp.ph2));
+        out[i * 2] = hp.x * sc + Math.cos(a) * rad * hp.sq; out[i * 2 + 1] = hp.y * sc + Math.sin(a) * rad / hp.sq;
       }
+    }
+    return out;
+  }
+  function kolamShape(s) {
+    const r = s.el.getBoundingClientRect(), b = (s.box || s.el).getBoundingClientRect();
+    const sc = Math.min(b.width, b.height) / (2 * kext);
+    const cx = b.left - r.left + b.width / 2, cy = b.top - r.top + b.height / 2;
+    s.p1 = [cx, cy, kext * sc, sc];
+    s.kol = { cx, cy, sc };
+    const out = kolamLocal(sc);
+    for (let i = 0; i < N; i++) if (isLine(i) || isPulli(i)) { out[i * 2] += cx; out[i * 2 + 1] += cy; }
+    return out;
+  }
+
+  // ---------- the kolam, broken ----------
+  // Five wedges round the centre, cut along wavering lines so no break runs straight or along an axis.
+  // A heap of flour goes whole with its piece; the line is cut, and its ends crumble.
+  const CUT = 5, CUT0 = 0.31, ARC = TAU / CUT;
+  const ROT = [-0.05, 0.04, -0.03, 0.05, -0.04];
+  const cutAt = (x, y) => (((Math.atan2(y, x) + 0.26 * Math.sin(Math.hypot(x, y) * 2.3 + 1.1) - CUT0) % TAU) + TAU) % TAU;
+  const SH = new Float32Array(N).fill(2), EDGE = new Float32Array(N).fill(9);
+  // each piece is placed by the middle of its own outline, and fitted by its larger side
+  const PIECE = Array.from({ length: CUT }, () => ({ x0: 1e9, x1: -1e9, y0: 1e9, y1: -1e9 }));
+  for (let i = 0; i < N; i++) {
+    const line = isLine(i);
+    if (!line && !isPulli(i)) continue;
+    const [x, y] = line ? pathAt(U[i]) : KOL.dots[heapOf(i)];
+    const a = cutAt(x, y), j = Math.min(CUT - 1, Math.floor(a / ARC)), f = a / ARC - j, c = PIECE[j];
+    SH[i] = j;
+    if (line) EDGE[i] = Math.min(f, 1 - f) * ARC * Math.hypot(x, y);
+    c.x0 = Math.min(c.x0, x); c.x1 = Math.max(c.x1, x); c.y0 = Math.min(c.y0, y); c.y1 = Math.max(c.y1, y);
+  }
+  PIECE.forEach((c) => { c.x = (c.x0 + c.x1) / 2; c.y = (c.y0 + c.y1) / 2; c.rad = Math.max(c.x1 - c.x0, c.y1 - c.y0) / 2 + 0.2; });
+  attr('aShard', SH, 1);
+  // each piece lands, turned a little, in the box its system's label marks out
+  function shardShape(s) {
+    const r = s.el.getBoundingClientRect();
+    // data-shard names the piece a box receives, so the page can list the systems in reading order
+    const boxes = [];
+    s.el.querySelectorAll('[data-shard]').forEach((b) => { boxes[+b.dataset.shard] = b.getBoundingClientRect(); });
+    const out = new Float32Array(N * 2);
+    if (boxes.filter(Boolean).length < CUT) return out;
+    const sc = Math.min(...boxes.map((b, j) => Math.min(b.width, b.height) / 2 / PIECE[j].rad));
+    const loc = kolamLocal(sc);
+    // where each piece landed and where it came from, so the shader can send it home when the visitor holds
+    s.pc = new Float32Array(CUT * 4);
+    boxes.forEach((b, j) => s.pc.set([b.left - r.left + b.width / 2, b.top - r.top + b.height / 2, PIECE[j].x * sc, PIECE[j].y * sc], j * 4));
+    // stacked layouts put words between the kolam and its pieces: there they re-form instead of flying
+    s.p1[0] = innerWidth < 900 ? 1 : 0;
+    s.kolR = kext * sc;
+    for (let i = 0; i < N; i++) {
+      if (!isLine(i) && !isPulli(i)) continue;
+      const j = SH[i], c = PIECE[j], b = boxes[j];
+      let x = loc[i * 2] - c.x * sc, y = loc[i * 2 + 1] - c.y * sc;
+      // close to a break the line comes loose, and a few grains spill off the piece
+      if (EDGE[i] < 0.22) {
+        const f = (1 - EDGE[i] / 0.22) ** 2, a = J[i * 3 + 2] * TAU, d = f * sc * 0.3 * J[i * 3 + 1];
+        x += Math.cos(a) * d; y += Math.sin(a) * d;
+      }
+      const cs = Math.cos(ROT[j]), sn = Math.sin(ROT[j]);
+      out[i * 2] = b.left - r.left + b.width / 2 + x * cs - y * sn;
+      out[i * 2 + 1] = b.top - r.top + b.height / 2 + x * sn + y * cs;
     }
     return out;
   }
@@ -472,9 +576,8 @@ export function createWave(canvas, { reduced = false } = {}) {
   const stageOf = (s) => s && s.querySelector('[data-stage]');
   push(stageOf(sec('top')), { mode: 4, p1: [0, 0, 1, 1], p2: [0, 0, 0, 0], col: INK, c: [0, 0, 0, 0] }, { name: 'hero', sec: sec('top'), box: sec('top')?.querySelector('[data-kolam]') });
   const hero = states[0] && states[0].mode === 4 ? states[0] : null;
-  const scatter = W(0.15, 0.6, 1, 0, 0, -0.3, 0, [0.85, 2, 0, 0]);
-  scatter.p2[2] = narrow ? 0.22 : 0.06; // on the phone the streams stop short, leaving a column for the labels
-  push(stageOf(sec('problem')), scatter, { name: 'scatter', sec: sec('problem'), enter: hero ? 0.3 : 0.6 });
+  // her story in five systems: the same kolam, broken into the pieces each one keeps
+  push(stageOf(sec('problem')), { mode: 5, p1: [0, 0, 0, 0], p2: [0, 0, 0, 0], col: INK, c: [0, 0, 0, 0] }, { name: 'scatter', sec: sec('problem'), enter: hero ? 0.3 : 0.6 });
   // the decision loop: one ring with five stations on it
   const ring = (c, W, H) => {
     const m = Math.min(W, H), R = m * 0.4;
@@ -530,9 +633,9 @@ export function createWave(canvas, { reduced = false } = {}) {
   }
   function buildShapes() {
     for (const s of states) {
-      if (s.mode !== 1 && s.mode !== 4) continue;
+      if (s.mode !== 1 && s.mode < 4) continue;
       const r = s.el.getBoundingClientRect();
-      const data = s.mode === 4 ? kolamShape(s) : s.draw ? sample(r.width, r.height, s.draw) : s.logo ? logoShape(r.width, r.height) : wordShape(s.word, r.width, r.height);
+      const data = s.mode === 5 ? shardShape(s) : s.mode === 4 ? kolamShape(s) : s.draw ? sample(r.width, r.height, s.draw) : s.logo ? logoShape(r.width, r.height) : wordShape(s.word, r.width, r.height);
       if (!s.buf) s.buf = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, s.buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
     }
@@ -636,7 +739,7 @@ export function createWave(canvas, { reduced = false } = {}) {
   // ---------- frame ----------
   // the kolam's opening is set from outside (main.js runs it with her words); finished by default
   const intro = { gather: 0, amp: 0, settle: 1, tau: 1 };
-  let approve = 0, sel = 0, t0 = performance.now(), last = t0;
+  let approve = 0, sel = 0, join = 0, t0 = performance.now(), last = t0;
   const set4 = (n, v) => gl.uniform4f(U_[n], v[0], v[1], v[2], v[3]);
   function bindState(s, which, rect) {
     gl.uniform1f(U_['uMode' + which], s.mode);
@@ -660,7 +763,7 @@ export function createWave(canvas, { reduced = false } = {}) {
     // nothing on screen to draw: both shapes are well outside the viewport
     const off = (r) => r.bottom < -vh * 0.4 || r.top > vh * 1.4;
     const idle = off(ra) && (ib === ia || off(rb));
-    const kol = !idle && (A.mode === 4 || B.mode === 4);
+    const kol = !idle && (A.mode >= 4 || B.mode >= 4);
     if (trail && kol) {
       const moved = Math.hypot(mouse.x - trail.px, mouse.y - trail.py);
       stepTrail(trail.px < -1e3 ? 0 : Math.max(0.2 * mouse.s, Math.min(1, moved / 8)) * (mouse.x < -1e3 ? 0 : 1));
@@ -693,6 +796,16 @@ export function createWave(canvas, { reduced = false } = {}) {
     gl.uniform1f(U_.uApprove, approve);
     gl.uniform1f(U_.uFar, narrow ? -0.5 : 1.0);
     gl.uniform1f(U_.uSel, sel);
+    const pieces = [A, B].find((s) => s.mode === 5 && s.pc);
+    gl.uniform1f(U_.uJoin, pieces ? join : 0);
+    if (pieces) {
+      gl.uniform4fv(U_.uPc, pieces.pc); gl.uniform1fv(U_.uPr, ROT);
+      // side by side, the kolam forms in the middle of its stage; stacked, in the part of the list on screen
+      // and it ends larger than the pieces it was made from, as large as the stage comfortably holds
+      const r = pieces === A ? ra : rb, stacked = pieces.p1[0];
+      const k = clamp((stacked ? r.width * 0.86 : Math.min(r.width, r.height) * 0.8) / (2 * pieces.kolR), 1, 1.8), m = pieces.kolR * k;
+      gl.uniform3f(U_.uHome, r.width / 2, stacked ? clamp(vh * 0.42 - r.top, m, r.height - m) : r.height / 2, k);
+    }
     gl.uniform3f(U_.uMouse, mouse.x, mouse.y, reduced ? 0 : mouse.s);
     bindState(A, 'A', ra);
     bindState(B, 'B', rb);
@@ -715,6 +828,7 @@ export function createWave(canvas, { reduced = false } = {}) {
     render, ready, states,
     setApprove(v) { approve = v; },
     setEngine(i) { sel = i; },
+    setJoin(v) { join = v; },
     setDeploy(i) { if (trust) trust.p1[3] = i; },
     setIntro(v) { Object.assign(intro, v); },
     relayout: () => layout(true),

@@ -24,13 +24,30 @@ const jsonLd = {
   ],
 };
 
-// The five places her story sits, and what each one knows about her.
+// The five places her story sits, and what each one knows about her. Each keeps one piece of the broken
+// kolam (`piece`, as cut in wave.js). On a wide screen the pieces stay where they were in the kolam, pushed
+// outward from its centre (x, y: the piece's centre, percent of the stage), each label on its outer side.
 const sources = [
-  ['Customer', 'Prefers Tamil'],
-  ['Loan system', '₹48,500 outstanding, 23 days past due'],
-  ['Conversations', '4 calls: “after my salary comes”'],
-  ['Transactions', 'Last instalment missed, no active promise'],
-  ['Policy', 'Contact hours, consent, approved options'],
+  { name: 'Customer record', fact: 'Mobile verified, KYC complete', piece: 3, x: 48.4, y: 24, side: 'above' },
+  { name: 'Loan system', fact: '₹48,500, 23 days overdue', piece: 2, x: 33.5, y: 44, side: 'left' },
+  { name: 'Call recordings', fact: '4 calls, 3 answered', piece: 4, x: 65, y: 40, side: 'right' },
+  { name: 'Transactions', fact: 'Salary credited on the 7th, instalment due on the 1st', piece: 1, x: 34, y: 70, side: 'below' },
+  { name: 'Policy PDF', fact: 'Calls 8 am to 7 pm, Tamil script approved', piece: 0, x: 63, y: 70, side: 'below' },
+];
+// the side labels share the stage's edge with the page margin, so they are narrower
+const labelSide: Record<string, string> = {
+  above: 'lg:bottom-full lg:left-0 lg:mb-3 lg:w-[14rem]',
+  below: 'lg:top-full lg:left-0 lg:mt-3 lg:w-[14rem]',
+  left: 'lg:top-1/2 lg:right-full lg:mr-5 lg:w-[11rem] lg:-translate-y-1/2 lg:text-right',
+  right: 'lg:top-1/2 lg:left-full lg:ml-5 lg:w-[9.5rem] lg:-translate-y-1/2',
+};
+
+// Sample: her calls since the due date. Each caller saw one system; nobody carried what she said to the next.
+const calls = [
+  ['Day 3', 'No answer'],
+  ['Day 9', 'Asked to be called in Tamil'],
+  ['Day 15', '“I will pay, please give me time”', true],
+  ['Day 21', '“After my salary comes”', true],
 ];
 
 // The decision loop. The ring of particles holds still; the orange arc and the words move with scroll.
@@ -116,7 +133,7 @@ const ccNote = 'mt-1 text-[.875rem] text-slate';
 const bubble = 'max-w-[88%] rounded-[10px] px-3 py-2 leading-[1.4] compact:px-2.5 compact:py-1.5 compact:text-[.875rem]';
 const port = 'group/p relative grid content-center gap-[3px] text-small text-slate max-lg:pl-16 max-lg:text-left max-lg:before:absolute max-lg:before:top-2.5 max-lg:before:left-[41px] max-lg:before:h-px max-lg:before:w-[18px] max-lg:before:bg-blue/30 max-lg:before:content-[""] max-lg:after:absolute max-lg:after:top-[5px] max-lg:after:left-[31px] max-lg:after:size-3.5 max-lg:after:rounded-full max-lg:after:border-2 max-lg:after:border-blue max-lg:after:bg-white max-lg:after:content-[""] max-lg:in-data-[phase=act]:data-[acts=yes]:after:animate-outflow max-lg:in-data-[phase=act]:data-[acts=yes]:after:border-orange max-lg:in-data-[phase=act]:data-[acts=yes]:after:bg-orange motion-reduce:after:animate-none';
 const portEm = 'translate-y-1 font-semibold text-[#94A3B8] not-italic opacity-0 transition-[opacity,translate] duration-300 ease-out in-data-[phase=act]:translate-y-0 in-data-[phase=act]:opacity-100 group-data-[acts=yes]/p:in-data-[phase=act]:text-rust';
-const navItems = [['#account', 'Account 1048'], ['#gate', 'The gate'], ['#engines', 'Engines'], ['#security', 'Security'], ['#pilot', 'Pilot']];
+const navItems = [['#account', 'Her account'], ['#gate', 'The gate'], ['#engines', 'Engines'], ['#security', 'Security'], ['#pilot', 'Pilot']];
 const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language', 'Tamil'], ['Contacts', '4', true], ['Promise to pay', 'None', true], ['Last outcome', 'Call after salary', true]];
 ---
 <!doctype html>
@@ -174,22 +191,24 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
         <!-- Words on the left, her kolam on the right like a picture on a wall, with what she said as its label. -->
         <div class="wrap relative z-3 grid min-h-[max(680px,calc(100svh_-_var(--nav)))] grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-x-[clamp(40px,5vw,96px)] py-[clamp(32px,6vh,72px)] max-lg:min-h-0 max-lg:grid-cols-1 max-lg:gap-y-10 max-lg:pt-[clamp(28px,6vw,48px)] max-lg:pb-14">
           <!-- the claim sits in the middle of the column; the compliance note shares a baseline with her caption -->
-          <div class="grid max-h-[760px] grid-rows-[minmax(0,1fr)_auto] self-center lg:h-full max-lg:block">
+          <!-- on narrow screens the column dissolves into the page grid, so the note can follow her line -->
+          <div class="grid max-h-[760px] grid-rows-[minmax(0,1fr)_auto] self-center lg:h-full max-lg:contents">
             <div class="self-center">
-            <h1 id="h-hero" class="reveal text-[length:clamp(2.75rem,.5rem_+_4.3vw,5.25rem)] leading-[1.02] font-medium tracking-[-.045em] text-white max-lg:text-[length:min(4.5rem,8.6vw)] max-sm:text-[length:10vw]">Every late payment has a reason</h1>
-            <p class="fade mt-[clamp(24px,3.4vh,40px)] max-w-[42ch] text-lead leading-[1.45] text-on-navy">Voice India Super Intelligence puts each loan beside what the borrower has already told you, and proposes the next call your policy allows. Your team approves it.</p>
-            <div class="fade mt-[clamp(28px,4vh,44px)] flex flex-wrap items-center gap-x-8 gap-y-4" style="--d:200ms">
+            <h1 id="h-hero" class="reveal text-[length:clamp(2.75rem,.5rem_+_4.3vw,5.25rem)] leading-[1.02] font-semibold tracking-[-.04em] text-white max-lg:text-[length:min(4.5rem,8.6vw)] max-sm:text-[length:10vw]">Every late payment has a reason</h1>
+            <p class="fade mt-[clamp(24px,3.4vh,40px)] max-w-[42ch] text-lead leading-[1.45] text-on-navy max-sm:mt-5 max-sm:text-body">Voice India Super Intelligence helps banks and NBFCs read each overdue loan with what the borrower has already said, then proposes the next call your policy allows. Your team approves&nbsp;it.</p>
+            <div class="fade mt-[clamp(28px,4vh,44px)] flex flex-wrap items-center gap-x-8 gap-y-4 max-sm:mt-6" style="--d:200ms">
               <a class="btn" href="#pilot">Book a demo</a>
-              <a class="link text-white decoration-white/35 hover:decoration-white" href="#account">Follow her account</a>
+              <a class="link text-white decoration-white/35 hover:decoration-white" href="#account">Follow one case</a>
             </div>
             </div>
-            <p class="fade mt-10 max-w-[44ch] text-small text-dim max-lg:mt-6" style="--d:280ms">Built for RBI, TRAI and DPDPA rules. Deployed on premise or in your private cloud.</p>
+            <p class="fade mt-10 max-w-[44ch] text-small text-on-navy max-lg:mt-0" style="--d:280ms">Runs on your premises or in your private cloud, within RBI, TRAI and DPDP Act&nbsp;rules.</p>
           </div>
           <!-- Tamil lines here and in the case are drafts: to be verified by a native speaker before launch. -->
           <figure class="voice grid h-full max-h-[760px] grid-rows-[minmax(0,1fr)_auto] self-center max-lg:h-auto" id="voice" aria-label="A simulated borrower, speaking Tamil">
             <!-- The kolam: a grid of rice-flour dots with one unbroken line around every one of them, drawn in particles. -->
-            <div class="min-h-[340px] max-lg:h-[min(84vw,46svh)] max-lg:min-h-0" data-kolam aria-hidden="true"></div>
-            <div class="mt-[clamp(20px,3vh,32px)] max-w-[30rem]">
+            <div class="min-h-[340px] max-lg:h-[min(62vw,34svh)] max-lg:min-h-0" data-kolam aria-hidden="true"></div>
+            <!-- her words step aside as the kolam breaks, so its pieces fall through clear air -->
+            <div class="mt-[clamp(20px,3vh,32px)] max-w-[30rem]" data-voice-text>
               <p class="voice-ta text-[length:clamp(1.1875rem,1rem_+_.45vw,1.4375rem)] leading-[1.45] font-medium text-white" lang="ta">சம்பளம் வந்த பிறகுதான் கட்ட முடியும். அதற்குப் பிறகு கூப்பிடுங்கள்.</p>
               <p class="voice-en mt-2 text-body leading-normal text-on-navy">“I can only pay after my salary comes in. Call me after that.”</p>
               <figcaption class="mt-3 text-small text-dim">Account 1048, 23 days past due. A simulated borrower. {hasVoice && <button type="button" class="ml-1.5 font-semibold text-white underline decoration-white/35 underline-offset-3 aria-pressed:decoration-orange" id="listen" aria-pressed="false">Hear her</button>}</figcaption>
@@ -198,16 +217,44 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
         </div>
       </section>
 
-      <section id="problem" class="ch relative bg-[linear-gradient(180deg,var(--color-navy)_0%,var(--color-navy)_35%,var(--color-navy-2)_100%)] pt-[clamp(72px,10vh,128px)] pb-[clamp(96px,14vh,170px)] text-on-navy" data-state="scatter" data-tone="dark" aria-labelledby="h-scatter">
-        <div class="wrap relative z-3 grid min-h-[68svh] grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-center gap-[clamp(32px,5vw,96px)] max-lg:grid-cols-1">
-          <div class="grid gap-5.5">
-            <h2 id="h-scatter" class="reveal text-white">Her story sits in five systems</h2>
-            <p class="fade max-w-[40ch] text-lead leading-[1.45]">Her repayment history sits in the loan system, her promise in a call recording, her language in the CRM and your policy in a PDF. When the next call is made, nobody sees it together.</p>
-            <p class="fade max-w-[40ch] text-lead leading-[1.45] font-semibold text-white">So the fifth call sounds like the first four.</p>
+      <section id="problem" class="ch relative bg-[linear-gradient(180deg,var(--color-navy)_0%,var(--color-navy)_35%,var(--color-navy-2)_100%)] pt-[clamp(72px,10vh,128px)] pb-[clamp(96px,14vh,170px)] text-on-navy max-lg:pt-6" data-state="scatter" data-tone="dark" aria-labelledby="h-scatter">
+        <!-- The hero's kolam breaks here. Each piece drifts down to the system that keeps it, its label beneath it. -->
+        <div class="wrap relative z-3 grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-center gap-[clamp(32px,5vw,96px)] max-lg:grid-cols-1 max-lg:gap-12">
+          <!-- top: the claim; middle: her four calls, each started from one piece; base: the line they lead to -->
+          <!-- on stacked layouts the column dissolves into the section's grid, so the hold can follow the pieces -->
+          <div class="flex flex-col gap-10 self-center max-lg:contents">
+            <div>
+              <h2 id="h-scatter" class="reveal text-white">Her account sits in five systems</h2>
+              <p class="fade mt-6 max-w-[38ch] text-lead leading-[1.45]">Each collector opened one of them, so nobody knew what she had already&nbsp;said.</p>
+            </div>
+            <ol class="fade grid max-w-[30rem] gap-3.5 text-body" aria-label="Her four calls since the due date" style="--d:180ms">
+              {calls.map(([day, said, quote]) => (
+                <li class="grid grid-cols-[5rem_minmax(0,1fr)] items-baseline gap-4 max-sm:grid-cols-[4rem_minmax(0,1fr)]">
+                  <span class="text-small text-dim tabular-nums">{day}</span>
+                  <span class={quote ? 'font-medium text-white' : 'text-on-navy'}>{said}</span>
+                </li>
+              ))}
+            </ol>
+            <!-- the line the four calls lead to. Once the visitor has held the pieces together it becomes what they found,
+                 and stays. On stacked layouts it follows the pieces, so the conclusion comes after the evidence. -->
+            <p class="fade max-w-[24ch] text-[length:clamp(1.5rem,1.1rem_+_.9vw,2rem)] leading-[1.2] font-medium tracking-[-.02em] text-white max-lg:order-last" style="--d:260ms" id="fifth-call" aria-live="polite"><span class="inline-block transition-[opacity,filter] duration-300 ease-out" data-payoff>So the fifth call sounds like the first&nbsp;four.</span></p>
+            <!-- the one thing to do here: hold, and the pieces go home into one kolam. Shown only once the particles run. -->
+            <div class="fade -mt-2 max-lg:order-last max-lg:-mt-4" style="--d:340ms" data-join-wrap hidden>
+              <button class="relative h-12 touch-none overflow-hidden rounded-[4px] bg-blue px-6 font-semibold text-white transition-[scale] duration-150 ease-out select-none [-webkit-touch-callout:none] active:scale-98 motion-reduce:active:scale-100" id="join" type="button">
+                <span class="hold-label flex h-full items-center">Hold to read her as one account</span>
+                <span class="hold-fill absolute inset-0 bg-white px-6 text-navy" aria-hidden="true"><span class="hold-label flex h-full items-center">Hold to read her as one account</span></span>
+              </button>
+            </div>
           </div>
-          <div class="pointer-events-none relative z-1 min-h-[clamp(380px,62svh,640px)] max-lg:min-h-[118vw]" data-stage aria-hidden="true">
-            {sources.map(([n, d], i) => <span class="absolute top-[calc(14%_+_18%*var(--l))] right-0 grid w-[21%] -translate-y-1/2 gap-0.5 text-left text-[.9375rem] leading-[1.35] font-medium text-on-navy max-lg:right-auto max-lg:left-[62%] max-lg:w-[38%] max-lg:text-[13px] max-lg:leading-[1.25]" style={`--l:${i}`}><b class="font-bold text-white">{n}</b>{d}</span>)}
-          </div>
+          <!-- wide: an exploded view of the hero's kolam. narrow: one row per system, its piece beside it -->
+          <ul class="relative grid gap-7 lg:block lg:h-[clamp(600px,86svh,780px)] sm:max-lg:grid-cols-2 sm:max-lg:gap-x-10" data-stage aria-label="Where her account is kept">
+            {sources.map(({ name, fact, piece, x, y, side }, i) => (
+              <li class="relative grid grid-cols-[min(34vw,168px)_minmax(0,1fr)] items-center gap-5 transition-opacity duration-300 ease-out in-data-[joined=true]:opacity-0 sm:max-lg:last:col-span-2 sm:max-lg:last:justify-self-center lg:absolute lg:top-(--y) lg:left-(--x) lg:block lg:w-[22%] lg:-translate-1/2" style={`--x:${x}%;--y:${y}%`}>
+                <span class="block aspect-square" data-shard={piece} aria-hidden="true"></span>
+                <p class={`fade text-small leading-[1.4] text-on-navy lg:absolute ${labelSide[side]}`} data-land style={`--d:${260 + i * 80}ms`}><b class="block font-semibold text-white">{name}</b>{fact}</p>
+              </li>
+            ))}
+          </ul>
         </div>
         <svg class={crestLight} viewBox="0 0 1440 300" preserveAspectRatio="none" aria-hidden="true"><path d="M0 210C300 150 640 120 940 170S1300 250 1440 200V300H0Z" /></svg>
       </section>

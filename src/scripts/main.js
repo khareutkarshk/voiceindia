@@ -39,7 +39,8 @@ function run(sec) {
 
 // ---------- entrances: headline lines rise out of a mask; supporting copy settles in after ----------
 (() => {
-  const heads = $$('.reveal'), items = $$('.fade');
+  // [data-land] labels wait for their piece of the kolam instead (see sync)
+  const heads = $$('.reveal'), items = $$('.fade:not([data-land])');
   heads.forEach((h) => h.classList.add('in'));
   items.forEach((el) => { if (el.getBoundingClientRect().top < innerHeight) el.classList.add('in'); });
   if (reduced || !('IntersectionObserver' in window)) return items.forEach((el) => el.classList.add('in'));
@@ -140,6 +141,41 @@ function goStep(i) {
 }
 prevBtn.addEventListener('click', () => goStep(current - 1));
 nextBtn.addEventListener('click', () => goStep(current + 1));
+
+// ---------- hold to join her story: the five pieces go home into one kolam while held, and part on release ----------
+// Linear while held, so the hold reads as deliberate; a quick ease back on release, as the system lets go.
+// The first time it is whole, the closing line becomes what no single system knew (salary on the 7th, her ask,
+// the contact hours, her language), and stays: the result is earned.
+// A tap too short to be a hold still plays a small preview, so the control explains itself.
+const join = $('#join'), payoff = $('[data-payoff]'), joinStage = $('#problem [data-stage]');
+let joined = 0, joining = false, joinT = 0, found = false, pressedAt = 0, previewTo = 0;
+function reveal() {
+  found = true;
+  const swap = () => { payoff.textContent = 'Read as one, the next call is clear: the 8th, after 6\u00a0pm, in\u00a0Tamil.'; join.querySelectorAll('.hold-label').forEach((l) => (l.textContent = 'Hold to see it again')); payoff.style.opacity = ''; payoff.style.filter = ''; };
+  if (reduced) return swap();
+  // a short blur bridges the two sentences, so it reads as one line changing rather than two swapping
+  payoff.style.opacity = '0'; payoff.style.filter = 'blur(4px)';
+  setTimeout(swap, 300);
+}
+function tickJoin(t) {
+  const dt = joinT ? Math.min(0.05, (t - joinT) / 1000) : 0; joinT = t;
+  if (joining || joined < previewTo) joined = reduced ? (joining ? 1 : joined) : Math.min(1, joined + dt / 1.2);
+  else { previewTo = 0; joined = reduced || joined < 0.003 ? 0 : joined * Math.exp(-dt * 10); }
+  if (field) field.setJoin(joined);
+  join.style.setProperty('--p', joined.toFixed(4));
+  joinStage.dataset.joined = String(joined > 0.05);
+  if (joined >= 1 && !found) reveal();
+  if (joining || joined > 0) requestAnimationFrame(tickJoin); else joinT = 0;
+}
+if (join) {
+  const start = () => { if (joining) return; joining = true; pressedAt = performance.now(); joinT = 0; requestAnimationFrame(tickJoin); };
+  const stop = () => { if (!joining) return; joining = false; if (performance.now() - pressedAt < 250 && !reduced) previewTo = 0.3; };
+  join.addEventListener('pointerdown', (e) => { join.setPointerCapture(e.pointerId); start(); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((n) => join.addEventListener(n, stop));
+  join.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); start(); } });
+  join.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') stop(); });
+  join.addEventListener('contextmenu', (e) => e.preventDefault());
+}
 
 // ---------- hold to approve (linear while held, quick ease back on release) ----------
 const hold = $('#hold'), status = $('#gate-status');
@@ -333,6 +369,11 @@ $$('[data-copy]').forEach((b) => b.addEventListener('click', () => {
 // ---------- one frame: scroll, then everything that depends on it ----------
 const tones = $$('.ch[data-tone], .foot');
 const crests = $$('.crest:not(.crest-light)');
+const voiceText = $('[data-voice-text]');
+// the five systems' labels appear as their pieces of the kolam land; without particles, as the stage comes up
+const landStage = $('#problem [data-stage]');
+let landing = $$('[data-land]');
+const land = () => { landing.forEach((el) => el.classList.add('in')); landing = null; };
 let tone = '';
 function sync() {
   const line = nav.offsetHeight;
@@ -347,6 +388,10 @@ function sync() {
       break;
     }
   }
+  // her words step aside as the kolam starts to break (only when there are particles to break)
+  // (side by side only: stacked, the pieces re-form in place and never cross her words)
+  if (voiceText) voiceText.style.opacity = field && innerWidth >= 900 ? (1 - clamp((scrollY - 40) / 190, 0, 1)).toFixed(3) : '';
+  if (landing && !field && landStage && landStage.getBoundingClientRect().top < innerHeight * 0.5) land();
   const { p0, len } = run(caseSec);
   setStep(clamp(Math.floor(((scrollY - p0) / len) * steps.length - 0.3), 0, steps.length - 1));
   syncLoop();
@@ -356,7 +401,8 @@ function frame(t) {
   if (introTl && introTl.progress() < 1 && scrollY > 40) introTl.timeScale(5);
   if (field) {
     field.setIntro(listen ? { ...intro, amp: Math.max(intro.amp, listen.level()) } : intro);
-    field.render(t);
+    const r = field.render(t);
+    if (landing && r && (r.a.name !== 'hero' || (r.b.name === 'scatter' && r.f > 0.85))) land();
   }
   sync();
   requestAnimationFrame(frame);
@@ -371,6 +417,8 @@ function boot() {
     const f = createWave(canvas, { reduced });
     if (!f) { canvas.remove(); return; }
     field = f;
+    // the pieces can only be held together where there are pieces to hold
+    const wrap = $('[data-join-wrap]'); if (wrap) wrap.hidden = false;
     field.setApprove(approved);
     field.setEngine(rows.findIndex((r) => r.dataset.engine === sel));
     f.ready.then(() => ScrollTrigger.refresh());
