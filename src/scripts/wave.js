@@ -52,15 +52,17 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts) {
     // loose flour hanging in still air, drifting on a slow current
     vec2 b0 = vec2(r1, r2) * vec2(w, h);
     vec2 dust = b0 + vec2(sin(b0.y * .0052 + t * .11 + r3 * 6.) + .5 * sin(t * .07 + r2 * 30.), cos(b0.x * .0047 - t * .09 + r1 * 6.) + .5 * cos(t * .05 + r1 * 30.)) * 22.;
-    // her voice: the flour gathers into one band through the kolam's centre and moves with what she says
+    // her voice: the flour gathers into one band through the kolam's centre and moves with what she says.
+    // It starts just short of the kolam and runs off the far edge, so it never crosses the words beside it.
     float env = sin(3.14159 * u);
     float amp = .12 + uKol.y;
-    vec2 band = vec2(u * w, p1.y + (st - 3.) * 1.7 + g * 1.4
+    float x0 = max(0., p1.x - 1.3 * p1.z);
+    vec2 band = vec2(mix(x0, w, u), p1.y + (st - 3.) * 1.7 + g * 1.4
       + (sin(u * 13. + t * 2.1 + r3 * .3) * .06 + sin(u * 29. - t * 3.3) * .025) * h * amp * env);
     float ge = clamp(uKol.x * 1.7 - r3 * .7, 0., 1.);
     ge = ge * ge * (3. - 2. * ge);
     vec2 p = mix(dust, band, ge);
-    float a = mix(.16 + .3 * r1, .8, ge);
+    float a = mix(.16 + .3 * r1, .8 * (x0 > 0. ? smoothstep(0., .14, u) : 1.), ge);
     float back = smoothstep(0., 1., uKol.z);
     if (role > .5 && role < 1.5) {
       // the pulli settle from the centre outwards, slowing as they land
