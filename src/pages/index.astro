@@ -3,8 +3,7 @@ import { Image } from 'astro:assets';
 import { existsSync } from 'node:fs';
 import logoLight from '../assets/voiceindia-logo-on-light.png';
 import logoDark from '../assets/voiceindia-logo-on-dark.png';
-import '../styles/site.css';
-import '../styles/sections.css';
+import '../styles/global.css';
 
 const site = 'https://voiceindia.si/';
 const title = 'Voice India Super Intelligence for Banking and NBFCs';
@@ -101,6 +100,24 @@ const outcomes = [
 const mail = 'tabassum.farheen@voiceindia.ai';
 // her recorded line; the Listen control appears only once the file is in public/audio
 const hasVoice = existsSync('public/audio/her-line.mp3');
+
+// Class strings used more than once. Tailwind reads them here like any other source.
+const stage = 'pointer-events-none absolute inset-0 z-1';
+const pin = 'sticky top-(--nav) z-3 h-[calc(100svh_-_var(--nav))] py-[clamp(20px,3.5vh,36px)] *:relative *:z-3 compact:pt-3.5 compact:pb-4 in-[.no-js]:relative in-[.no-js]:h-auto'; // the gate's pin differs and is written out in place
+const crest = 'crest absolute inset-x-0 -bottom-px z-1 w-full';
+const crestNavy = `${crest} h-[28svh] fill-navy max-sm:h-[14svh]`;
+const crestLight = `${crest} crest-light h-[14svh] fill-white`;
+const navLink = 'text-navy no-underline opacity-78 transition-opacity duration-150 hover:opacity-100 group-data-[tone=dark]/nav:text-white';
+const footLink = 'text-white no-underline hover:underline';
+const cardTitle = 'mb-1.5 text-body font-bold tracking-[-.01em] text-navy';
+const arrow = 'arrow grid size-10 place-items-center rounded-[4px] bg-white text-navy transition-[scale,background-color] duration-150 ease-out active:scale-94 disabled:cursor-default disabled:opacity-35 enabled:hover:bg-ice motion-reduce:active:scale-100 [&_svg]:size-4 [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[1.8] [&_svg]:[stroke-linecap:round] [&_svg]:[stroke-linejoin:round]';
+const ccBody = 'grid text-ink transition-[opacity,transform] duration-[360ms] ease-out group-data-[s=next]/li:hidden group-data-[s=done]/li:hidden group-data-[s=now]/li:animate-cc-in';
+const ccNote = 'mt-1 text-[.875rem] text-slate';
+const bubble = 'max-w-[88%] rounded-[10px] px-3 py-2 leading-[1.4] compact:px-2.5 compact:py-1.5 compact:text-[.875rem]';
+const port = 'group/p relative grid content-center gap-[3px] text-small text-slate max-lg:pl-16 max-lg:text-left max-lg:before:absolute max-lg:before:top-2.5 max-lg:before:left-[41px] max-lg:before:h-px max-lg:before:w-[18px] max-lg:before:bg-blue/30 max-lg:before:content-[""] max-lg:after:absolute max-lg:after:top-[5px] max-lg:after:left-[31px] max-lg:after:size-3.5 max-lg:after:rounded-full max-lg:after:border-2 max-lg:after:border-blue max-lg:after:bg-white max-lg:after:content-[""] max-lg:in-data-[phase=act]:data-[acts=yes]:after:animate-outflow max-lg:in-data-[phase=act]:data-[acts=yes]:after:border-orange max-lg:in-data-[phase=act]:data-[acts=yes]:after:bg-orange motion-reduce:after:animate-none';
+const portEm = 'translate-y-1 font-semibold text-[#94A3B8] not-italic opacity-0 transition-[opacity,translate] duration-300 ease-out in-data-[phase=act]:translate-y-0 in-data-[phase=act]:opacity-100 group-data-[acts=yes]/p:in-data-[phase=act]:text-rust';
+const navItems = [['#account', 'Account 1048'], ['#gate', 'The gate'], ['#engines', 'Engines'], ['#security', 'Security'], ['#pilot', 'Pilot']];
+const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language', 'Tamil'], ['Contacts', '4', true], ['Promise to pay', 'None', true], ['Last outcome', 'Call after salary', true]];
 ---
 <!doctype html>
 <html lang="en-IN" class="no-js">
@@ -133,88 +150,84 @@ const hasVoice = existsSync('public/audio/her-line.mp3');
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   </head>
   <body>
-    <a class="skip" href="#main">Skip to content</a>
-    <canvas id="field" aria-hidden="true"></canvas>
+    <a class="absolute -top-15 left-3 z-30 bg-navy px-3.5 py-2.5 text-white focus:top-3" href="#main">Skip to content</a>
+    <canvas id="field" class="pointer-events-none fixed inset-0 z-2 block h-lvh w-screen in-[.no-js]:hidden" aria-hidden="true"></canvas>
 
-    <header class="nav" id="nav">
-      <div class="wrap nav-row">
-        <a href="#top" class="brand" aria-label="Voice India Super Intelligence, back to top">
-          <Image src={logoLight} alt="Voice India" width={168} height={42} loading="eager" fetchpriority="high" class="logo-l" />
-          <Image src={logoDark} alt="" width={168} height={42} loading="eager" class="logo-d" />
+    <header class="group/nav sticky top-0 z-20 h-(--nav) bg-white data-[tone=dark]:bg-navy" id="nav">
+      <div class="wrap flex h-full items-center justify-between gap-6">
+        <a href="#top" class="relative block h-[34px] w-[136px]" aria-label="Voice India Super Intelligence, back to top">
+          <Image src={logoLight} alt="Voice India" width={168} height={42} loading="eager" fetchpriority="high" class="absolute inset-0 size-full object-contain group-data-[tone=dark]/nav:opacity-0" />
+          <Image src={logoDark} alt="" width={168} height={42} loading="eager" class="absolute inset-0 size-full object-contain opacity-0 group-data-[tone=dark]/nav:opacity-100" />
         </a>
-        <nav aria-label="Sections">
-          <ul>
-            <li><a href="#account">Account 1048</a></li>
-            <li><a href="#gate">The gate</a></li>
-            <li><a href="#engines">Engines</a></li>
-            <li><a href="#security">Security</a></li>
-            <li><a href="#pilot">Pilot</a></li>
+        <nav aria-label="Sections" class="max-md:hidden">
+          <ul class="flex gap-[clamp(20px,2.6vw,40px)] text-small font-semibold">
+            {navItems.map(([href, label]) => <li><a class={navLink} href={href}>{label}</a></li>)}
           </ul>
         </nav>
-        <a class="btn btn-sm" href="#pilot">Book a demo</a>
+        <a class="btn min-h-[42px] px-4.5 text-small" href="#pilot">Book a demo</a>
       </div>
     </header>
 
     <main id="main">
-      <section id="top" class="ch hero" data-state="hero" data-tone="dark" aria-labelledby="h-hero">
-        <div class="stage hero-stage" data-stage aria-hidden="true"></div>
-        <div class="wrap hero-grid">
+      <section id="top" class="ch relative bg-navy text-on-navy" data-state="hero" data-tone="dark" aria-labelledby="h-hero">
+        <div class={stage} data-stage aria-hidden="true"></div>
+        <div class="wrap relative z-3 grid min-h-[max(720px,calc(100svh_-_var(--nav)))] grid-rows-[minmax(0,1fr)_auto_auto] pt-[clamp(8px,1.5vh,20px)] pb-[clamp(32px,5.5vh,64px)] max-md:min-h-0 max-md:grid-rows-[auto_auto_auto] max-md:pt-2">
           <!-- The kolam: a grid of rice-flour dots with one unbroken line around every one of them, drawn in particles. -->
-          <div class="kolam-box" data-kolam aria-hidden="true"></div>
+          <div class="min-h-[300px] max-md:h-[min(66vw,33svh)] max-md:min-h-0" data-kolam aria-hidden="true"></div>
           <!-- Tamil lines here and in the case are drafts: to be verified by a native speaker before launch. -->
-          <figure class="voice" id="voice" aria-label="A simulated customer, speaking Tamil">
-            <p class="voice-ta" lang="ta">சம்பளம் வந்த பிறகுதான் கட்ட முடியும். அதற்குப் பிறகு கூப்பிடுங்கள்.</p>
-            <p class="voice-en">“I can only pay after my salary comes in. Call me after that.”</p>
-            <figcaption>Account 1048, 23 days past due. A simulated customer. {hasVoice && <button type="button" class="listen" id="listen" aria-pressed="false">Hear her</button>}</figcaption>
+          <figure class="voice mx-auto mt-[clamp(6px,1.4vh,14px)] max-w-[46ch] text-center" id="voice" aria-label="A simulated customer, speaking Tamil">
+            <p class="voice-ta text-[1.0625rem] leading-normal font-medium text-white" lang="ta">சம்பளம் வந்த பிறகுதான் கட்ட முடியும். அதற்குப் பிறகு கூப்பிடுங்கள்.</p>
+            <p class="voice-en mt-0.5 text-small leading-normal text-on-navy">“I can only pay after my salary comes in. Call me after that.”</p>
+            <figcaption class="mt-2 text-[.8125rem] text-dim">Account 1048, 23 days past due. A simulated customer. {hasVoice && <button type="button" class="ml-1.5 font-semibold text-white underline decoration-white/35 underline-offset-3 aria-pressed:decoration-orange" id="listen" aria-pressed="false">Hear her</button>}</figcaption>
           </figure>
-          <div class="hero-foot">
-            <h1 id="h-hero" class="reveal">Know the borrower before the next call</h1>
-            <div class="hero-side">
-              <p class="lead fade">Voice India Super Intelligence is the decision layer for banks and NBFCs. It reads every account in context, recommends the next permitted action and keeps your people in charge of each decision.</p>
-              <div class="actions fade">
+          <div class="mt-[clamp(24px,4vh,44px)] grid grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] items-end gap-[clamp(32px,5vw,96px)] max-md:mt-5.5 max-md:grid-cols-1 max-md:gap-5">
+            <h1 id="h-hero" class="reveal max-w-[10em] text-[length:clamp(2.6rem,.9rem_+_3.9vw,5.4rem)] leading-[.96] font-semibold tracking-[-.04em] text-white max-md:text-[length:min(var(--text-giant),10.4vw)]">Know the borrower before the next call</h1>
+            <div class="max-md:flex max-md:flex-col">
+              <p class="fade max-w-[48ch] text-body leading-[1.55] text-on-navy">Voice India Super Intelligence is the decision layer for banks and NBFCs. It reads every account in context, recommends the next permitted action and keeps your people in charge of each decision.</p>
+              <div class="fade mt-6 flex flex-wrap items-center gap-x-8 gap-y-4 max-md:order-first max-md:mt-0 max-md:mb-5.5">
                 <a class="btn" href="#pilot">Book a demonstration</a>
-                <a class="link" href="#account">Follow one account</a>
+                <a class="link text-white decoration-white/35 hover:decoration-white" href="#account">Follow one account</a>
               </div>
-              <p class="trust-line fade">Built for RBI, TRAI and DPDPA requirements. Runs on premise, in a private cloud or hybrid.</p>
+              <p class="fade mt-5.5 flex max-w-[40ch] items-center gap-2.5 text-[.875rem] text-dim before:size-[7px] before:flex-none before:rounded-full before:bg-green before:content-['']">Built for RBI, TRAI and DPDPA requirements. Runs on premise, in a private cloud or hybrid.</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="problem" class="ch scatter" data-state="scatter" data-tone="dark" aria-labelledby="h-scatter">
-        <div class="wrap scatter-grid">
-          <div class="scatter-copy">
-            <h2 id="h-scatter" class="reveal">Her story sits in five systems</h2>
-            <p class="fade">Her repayment history sits in the loan system, her promise in a call recording, her language in the CRM and your policy in a PDF. When the next call is made, nobody sees it together.</p>
-            <p class="fade">So the fifth call sounds like the first four.</p>
+      <section id="problem" class="ch relative bg-[linear-gradient(180deg,var(--color-navy)_0%,var(--color-navy)_35%,var(--color-navy-2)_100%)] pt-[clamp(72px,10vh,128px)] pb-[clamp(96px,14vh,170px)] text-on-navy" data-state="scatter" data-tone="dark" aria-labelledby="h-scatter">
+        <div class="wrap relative z-3 grid min-h-[68svh] grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-center gap-[clamp(32px,5vw,96px)] max-lg:grid-cols-1">
+          <div class="grid gap-5.5">
+            <h2 id="h-scatter" class="reveal text-white">Her story sits in five systems</h2>
+            <p class="fade max-w-[40ch] text-lead leading-[1.45]">Her repayment history sits in the loan system, her promise in a call recording, her language in the CRM and your policy in a PDF. When the next call is made, nobody sees it together.</p>
+            <p class="fade max-w-[40ch] text-lead leading-[1.45] font-semibold text-white">So the fifth call sounds like the first four.</p>
           </div>
-          <div class="stage scatter-stage" data-stage aria-hidden="true">
-            {sources.map(([n, d], i) => <span style={`--l:${i}`}><b>{n}</b>{d}</span>)}
+          <div class="pointer-events-none relative z-1 min-h-[clamp(380px,62svh,640px)] max-lg:min-h-[118vw]" data-stage aria-hidden="true">
+            {sources.map(([n, d], i) => <span class="absolute top-[calc(14%_+_18%*var(--l))] right-0 grid w-[21%] -translate-y-1/2 gap-0.5 text-left text-[.9375rem] leading-[1.35] font-medium text-on-navy max-lg:right-auto max-lg:left-[62%] max-lg:w-[38%] max-lg:text-[13px] max-lg:leading-[1.25]" style={`--l:${i}`}><b class="font-bold text-white">{n}</b>{d}</span>)}
           </div>
         </div>
-        <svg class="crest crest-light" viewBox="0 0 1440 300" preserveAspectRatio="none" aria-hidden="true"><path d="M0 210C300 150 640 120 940 170S1300 250 1440 200V300H0Z" /></svg>
+        <svg class={crestLight} viewBox="0 0 1440 300" preserveAspectRatio="none" aria-hidden="true"><path d="M0 210C300 150 640 120 940 170S1300 250 1440 200V300H0Z" /></svg>
       </section>
 
-      <section id="loop" class="ch loop" data-tone="light" aria-labelledby="h-loop" style={`--steps:${loop.length}`}>
-        <div class="pin">
-          <div class="wrap loop-grid">
-            <div class="loop-ring">
-              <div class="stage ring-stage" data-stage aria-hidden="true"></div>
-              <svg class="ring-arc" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="40" pathLength="1" /></svg>
-              <div class="ring-word" aria-hidden="true" data-facts={JSON.stringify(loop.map((l) => l[3]))}><span id="ring-step">Account 1048</span><b id="ring-word">{loop[0][3]}</b></div>
-              <ol class="ring-names">
-                {loop.map(([n], i) => <li style={`--a:${i * 72 - 90}deg`} data-i={i}>{n}</li>)}
+      <section id="loop" class="ch relative h-[calc(var(--steps)*40svh_+_100svh)] bg-[linear-gradient(180deg,var(--color-white)_0%,var(--color-mist)_100%)] max-lg:h-[calc(var(--steps)*44svh_+_100svh)] in-[.no-js]:h-auto" data-tone="light" aria-labelledby="h-loop" style={`--steps:${loop.length}`}>
+        <div class={`${pin} flex items-center`}>
+          <div class="wrap grid w-full grid-cols-[minmax(0,6fr)_minmax(0,5fr)] items-center gap-[clamp(40px,6vw,120px)] max-lg:grid-cols-1 max-lg:gap-4.5">
+            <div class="relative aspect-square w-[min(100%,68svh)] justify-self-center max-lg:w-[min(70vw,36svh)]">
+              <div class={stage} data-stage aria-hidden="true"></div>
+              <svg class="ring-arc pointer-events-none absolute inset-0 z-3 size-full -rotate-90" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="40" pathLength="1" /></svg>
+              <div class="ring-word pointer-events-none absolute inset-0 z-3 grid place-content-center justify-items-center gap-1.5 text-center" aria-hidden="true" data-facts={JSON.stringify(loop.map((l) => l[3]))}><span id="ring-step" class="text-small font-semibold text-slate max-lg:hidden">Account 1048</span><b id="ring-word" class="max-w-[7em] text-[length:clamp(1.75rem,.9rem_+_1.9vw,2.5rem)] leading-[1.05] font-bold tracking-[-.04em] text-navy max-lg:max-w-[6em] max-lg:text-[1.375rem]">{loop[0][3]}</b></div>
+              <ol class="ring-names absolute inset-0 z-3">
+                {loop.map(([n], i) => <li class="absolute -translate-1/2 text-[length:clamp(.9375rem,.8rem_+_.3vw,1.125rem)] font-bold whitespace-nowrap text-ring transition-colors duration-300 data-[s=done]:text-navy data-[s=now]:text-orange max-lg:text-[.8125rem]" style={`--a:${i * 72 - 90}deg`} data-i={i}>{n}</li>)}
               </ol>
             </div>
-            <div class="loop-copy">
-              <h2 id="h-loop" class="reveal">One continuous decision loop</h2>
-              <p class="fade loop-sub">Super Intelligence connects the systems you already run and moves your teams from raw data to decisions, permitted actions and verified outcomes.</p>
-              <div class="loop-steps">
+            <div class="grid content-center gap-6 max-lg:gap-3">
+              <h2 id="h-loop" class="reveal text-[length:clamp(2rem,1.1rem_+_2.6vw,3.75rem)] max-lg:text-[1.75rem]">One continuous decision loop</h2>
+              <p class="fade max-w-[44ch] text-slate max-lg:hidden">Super Intelligence connects the systems you already run and moves your teams from raw data to decisions, permitted actions and verified outcomes.</p>
+              <div class="grid min-h-[13.5em] max-lg:min-h-[11em]">
                 {loop.map(([n, t, h], i) => (
-                  <article class="loop-step" data-i={i} data-active={i === 0 ? 'true' : 'false'}>
+                  <article class="loop-step col-start-1 row-start-1 grid max-w-[44ch] content-start gap-2.5 in-[.no-js]:col-auto in-[.no-js]:row-auto in-[.no-js]:mb-5" data-i={i} data-active={i === 0 ? 'true' : 'false'}>
                     <h3>{n}</h3>
-                    <p>{t}</p>
-                    <p class="her">{h}</p>
+                    <p class="max-lg:text-small">{t}</p>
+                    <p class="pl-4 font-semibold text-navy shadow-[inset_3px_0_var(--color-orange)] max-lg:text-small">{h}</p>
                   </article>
                 ))}
               </div>
@@ -223,80 +236,77 @@ const hasVoice = existsSync('public/audio/her-line.mp3');
         </div>
       </section>
 
-      <section id="account" class="ch case" data-state="case" data-tone="light" aria-labelledby="h-case" style={`--steps:${steps.length}`}>
-        <div class="pin">
-          <div class="wrap case-head">
-            <h2 id="h-case">Account 1048 <span>A simulated collections case</span></h2>
-            <div class="case-nav">
-              <p class="count" aria-live="polite"><span id="step-now">1</span> of {steps.length}</p>
-              <button class="arrow" data-dir="-1" aria-label="Previous step"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" /></svg></button>
-              <button class="arrow" data-dir="1" aria-label="Next step"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" /></svg></button>
-              <a class="skip-link" href="#gate">Skip</a>
+      <section id="account" class="ch case relative h-[calc(var(--steps)*66svh_+_100svh)] bg-[linear-gradient(180deg,#FFFFFF_0%,var(--color-mist)_40%,#ECF2FF_100%)] compact:h-[calc(var(--steps)*70svh_+_100svh)] in-[.no-js]:h-auto" data-state="case" data-tone="light" aria-labelledby="h-case" style={`--steps:${steps.length}`}>
+        <div class={`${pin} grid grid-rows-[auto_minmax(0,1fr)] gap-[clamp(16px,3vh,32px)] compact:gap-3`}>
+          <div class="wrap flex w-full items-baseline justify-between gap-6">
+            <h2 id="h-case" class="flex flex-wrap items-baseline gap-x-4.5 gap-y-1 text-[length:clamp(1.5rem,1rem_+_1.4vw,2.25rem)]">Account 1048 <span class="text-small font-medium tracking-normal text-slate compact:hidden">A simulated collections case</span></h2>
+            <div class="flex items-center gap-2 text-small font-semibold text-navy">
+              <p class="mr-2.5 tabular-nums compact:hidden" aria-live="polite"><span id="step-now">1</span> of {steps.length}</p>
+              <button class={arrow} data-dir="-1" aria-label="Previous step"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" /></svg></button>
+              <button class={arrow} data-dir="1" aria-label="Next step"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" /></svg></button>
+              <a class="ml-2.5 font-semibold text-slate compact:hidden" href="#gate">Skip</a>
             </div>
           </div>
-          <div class="wrap case-body">
-            <div class="case-left">
-              <div class="steps">
+          <div class="wrap grid min-h-0 w-full grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-[clamp(32px,5vw,96px)] compact:grid-cols-1 compact:grid-rows-[auto_auto] compact:content-start compact:gap-3">
+            <div class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-[clamp(12px,3vh,32px)] compact:grid-rows-[auto_clamp(90px,17svh,170px)] compact:gap-2">
+              <div class="grid">
                 {steps.map((s, i) => (
-                  <article class="step" data-step={i} data-active={i === 0 ? 'true' : 'false'} aria-hidden={i === 0 ? 'false' : 'true'}>
-                    <h3>{s.title}</h3>
-                    <p>{s.text}</p>
+                  <article class="step col-start-1 row-start-1 grid max-w-[46ch] content-start gap-3.5 compact:gap-1.5 in-[.no-js]:col-auto in-[.no-js]:row-auto in-[.no-js]:mb-6" data-step={i} data-active={i === 0 ? 'true' : 'false'} aria-hidden={i === 0 ? 'false' : 'true'}>
+                    <h3 class="text-[length:clamp(1.625rem,1rem_+_1.8vw,2.75rem)] leading-[1.05] tracking-[-.035em] compact:text-[1.375rem]">{s.title}</h3>
+                    <p class="text-slate compact:text-small compact:leading-normal">{s.text}</p>
                   </article>
                 ))}
               </div>
-              <div class="stage case-stage" data-stage data-words={JSON.stringify(steps.map((s) => s.word))} aria-hidden="true"></div>
+              <div class="pointer-events-none relative z-1 min-h-0" data-stage data-words={JSON.stringify(steps.map((s) => s.word))} aria-hidden="true"></div>
             </div>
-            <div class="case-card" data-ui data-at="0">
-              <p class="cc-head"><b>Account 1048</b><span>Simulated. Collections queue, bucket 1–30</span></p>
-              <dl class="cc-stats">
-                <div><dt>Outstanding</dt><dd>₹48,500</dd></div>
-                <div><dt>Days past due</dt><dd>23</dd></div>
-                <div><dt>Language</dt><dd>Tamil</dd></div>
-                <div class="cc-more"><dt>Contacts</dt><dd>4</dd></div>
-                <div class="cc-more"><dt>Promise to pay</dt><dd>None</dd></div>
-                <div class="cc-more"><dt>Last outcome</dt><dd>Call after salary</dd></div>
+            <div class="self-start rounded-xl border border-line bg-white p-[clamp(18px,1.6vw,26px)] text-small compact:px-4 compact:py-3.5" data-ui data-at="0">
+              <p class="mb-3.5 flex items-baseline justify-between compact:mb-2"><b class="text-body text-navy">Account 1048</b><span class="text-slate compact:hidden">Simulated. Collections queue, bucket 1–30</span></p>
+              <dl class="mb-4.5 grid grid-cols-3 gap-1 compact:mb-1.5">
+                {stats.map(([dt, dd, more]) => (
+                  <div class={`rounded-md bg-mist px-3 py-2.5 compact:px-2.5 compact:py-1.5${more ? ' compact:hidden' : ''}`}><dt class="text-slate compact:text-[.8125rem]">{dt}</dt><dd class={`font-bold tracking-[-.02em] text-navy tabular-nums ${more ? 'text-body' : 'text-lead compact:text-body'}`}>{dd}</dd></div>
+                ))}
               </dl>
-              <ol class="cc-log">
-                <li data-i="0">
-                  <p class="cc-label">Diagnosis <time>10:31</time></p>
-                  <p class="cc-sum">A: salary lands after the due date</p>
-                  <div class="cc-body">
-                    <p><b>A</b> Salary lands after the due date</p>
-                    <p class="cc-alt"><b>B</b> An earlier question was never answered</p>
-                    <p class="cc-alt"><b>C</b> Contact details are out of date</p>
-                    <p class="cc-note">Hypotheses to test on the next permitted contact. None is a fact yet.</p>
+              <ol class="cc-log grid">
+                <li class="group/li relative py-3 pl-5.5 compact:pt-2 compact:pb-1 compact:not-data-[s=now]:hidden" data-i="0">
+                  <p class="mb-1.5 flex justify-between gap-3 font-bold text-navy transition-colors duration-300 group-data-[s=next]/li:text-[#64748B]">Diagnosis <time class="font-medium text-slate tabular-nums">10:31</time></p>
+                  <p class="hidden text-slate group-data-[s=done]/li:block">A: salary lands after the due date</p>
+                  <div class={`${ccBody} gap-1`}>
+                    <p><b class="mr-1.5 text-orange">A</b> Salary lands after the due date</p>
+                    <p class="text-slate"><b class="mr-1.5 text-slate">B</b> An earlier question was never answered</p>
+                    <p class="text-slate"><b class="mr-1.5 text-slate">C</b> Contact details are out of date</p>
+                    <p class={ccNote}>Hypotheses to test on the next permitted contact. None is a fact yet.</p>
                   </div>
                 </li>
-                <li data-i="1">
-                  <p class="cc-label">Recommendation <time>10:33</time></p>
-                  <p class="cc-sum">Call after salary credit, in Tamil</p>
-                  <div class="cc-body"><p>Follow-up call after her salary credit, within permitted hours, in Tamil. Priority medium.</p><p class="cc-note">Basis: her own request and recorded preference.</p></div>
+                <li class="group/li relative py-3 pl-5.5 compact:pt-2 compact:pb-1 compact:not-data-[s=now]:hidden" data-i="1">
+                  <p class="mb-1.5 flex justify-between gap-3 font-bold text-navy transition-colors duration-300 group-data-[s=next]/li:text-[#64748B]">Recommendation <time class="font-medium text-slate tabular-nums">10:33</time></p>
+                  <p class="hidden text-slate group-data-[s=done]/li:block">Call after salary credit, in Tamil</p>
+                  <div class={`${ccBody} gap-1`}><p>Follow-up call after her salary credit, within permitted hours, in Tamil. Priority medium.</p><p class={ccNote}>Basis: her own request and recorded preference.</p></div>
                 </li>
-                <li data-i="2">
-                  <p class="cc-label">Approval <time id="approve-time">waiting</time></p>
-                  <p class="cc-sum" id="approve-sum">Approved</p>
-                  <div class="cc-body">
-                    <button class="hold" id="hold" type="button">
-                      <span class="hold-label">Hold to approve</span>
-                      <span class="hold-fill" aria-hidden="true"><span class="hold-label">Hold to approve</span></span>
+                <li class="group/li relative py-3 pl-5.5 compact:pt-2 compact:pb-1 compact:not-data-[s=now]:hidden" data-i="2">
+                  <p class="mb-1.5 flex justify-between gap-3 font-bold text-navy transition-colors duration-300 group-data-[s=next]/li:text-[#64748B]">Approval <time id="approve-time" class="font-medium text-slate tabular-nums">waiting</time></p>
+                  <p class="hidden text-slate group-data-[s=done]/li:block" id="approve-sum">Approved</p>
+                  <div class={`${ccBody} gap-1`}>
+                    <button class="relative h-12 w-full touch-none overflow-hidden rounded-md bg-navy font-bold text-white transition-[scale] duration-150 ease-out select-none focus-visible:outline-navy active:scale-98 motion-reduce:active:scale-100" id="hold" type="button">
+                      <span class="hold-label flex h-full items-center justify-center">Hold to approve</span>
+                      <span class="hold-fill absolute inset-0 bg-green text-white" aria-hidden="true"><span class="hold-label flex h-full items-center justify-center">Hold to approve</span></span>
                     </button>
-                    <p class="gate-status" id="gate-status" aria-live="polite">Contact hours, consent and authority checked</p>
+                    <p class="mt-2 min-h-[3em] text-slate data-[ok=true]:font-semibold data-[ok=true]:text-green" id="gate-status" aria-live="polite">Contact hours, consent and authority checked</p>
                   </div>
                 </li>
-                <li data-i="3">
-                  <p class="cc-label">Call <time>Day 8, 18:10</time></p>
-                  <p class="cc-sum">Follow-up recorded, in Tamil</p>
-                  <div class="cc-body chat">
-                    <p class="them"><span lang="ta">சம்பளம் வந்த பிறகுதான் கட்ட முடியும்.</span>I can only pay after my salary comes in.</p>
-                    <p class="us"><span lang="ta">புரிகிறது. சம்பளம் வந்த பிறகு தமிழில் அழைக்கிறோம்.</span>Understood. We will call after your salary credit, in Tamil.</p>
-                    <p class="them"><span lang="ta">முதல் வாரத்துக்குப் பிறகு சரி.</span>After the first week is fine.</p>
-                    <p class="cc-note">No payment commitment was made on this call.</p>
+                <li class="group/li relative py-3 pl-5.5 compact:pt-2 compact:pb-1 compact:not-data-[s=now]:hidden" data-i="3">
+                  <p class="mb-1.5 flex justify-between gap-3 font-bold text-navy transition-colors duration-300 group-data-[s=next]/li:text-[#64748B]">Call <time class="font-medium text-slate tabular-nums">Day 8, 18:10</time></p>
+                  <p class="hidden text-slate group-data-[s=done]/li:block">Follow-up recorded, in Tamil</p>
+                  <div class={`${ccBody} gap-2`}>
+                    <p class={`${bubble} justify-self-start bg-mist`}><span lang="ta" class="mb-0.5 block font-semibold">சம்பளம் வந்த பிறகுதான் கட்ட முடியும்.</span>I can only pay after my salary comes in.</p>
+                    <p class={`${bubble} justify-self-end bg-navy text-white`}><span lang="ta" class="mb-0.5 block font-semibold">புரிகிறது. சம்பளம் வந்த பிறகு தமிழில் அழைக்கிறோம்.</span>Understood. We will call after your salary credit, in Tamil.</p>
+                    <p class={`${bubble} justify-self-start bg-mist compact:hidden`}><span lang="ta" class="mb-0.5 block font-semibold">முதல் வாரத்துக்குப் பிறகு சரி.</span>After the first week is fine.</p>
+                    <p class="mt-1 rounded-[10px] text-[.875rem] leading-[1.4] text-slate">No payment commitment was made on this call.</p>
                   </div>
                 </li>
-                <li data-i="4">
-                  <p class="cc-label">Outcome <time>Day 9, 17:05</time></p>
-                  <p class="cc-sum">Callback requested</p>
-                  <div class="cc-body"><p>Callback requested. Payment not confirmed. Compared with the recommendation.</p></div>
+                <li class="group/li relative py-3 pl-5.5 compact:pt-2 compact:pb-1 compact:not-data-[s=now]:hidden" data-i="4">
+                  <p class="mb-1.5 flex justify-between gap-3 font-bold text-navy transition-colors duration-300 group-data-[s=next]/li:text-[#64748B]">Outcome <time class="font-medium text-slate tabular-nums">Day 9, 17:05</time></p>
+                  <p class="hidden text-slate group-data-[s=done]/li:block">Callback requested</p>
+                  <div class={`${ccBody} gap-1`}><p>Callback requested. Payment not confirmed. Compared with the recommendation.</p></div>
                 </li>
               </ol>
             </div>
@@ -304,22 +314,22 @@ const hasVoice = existsSync('public/audio/her-line.mp3');
         </div>
       </section>
 
-      <section id="gate" class="ch gate" data-tone="dark" aria-labelledby="h-gate">
-        <div class="pin">
-          <div class="wrap gate-grid">
-            <div class="gate-copy">
-              <h2 id="h-gate" class="reveal">Every action passes the gate</h2>
-              <p class="fade gate-sub">Financial services needs more than a useful answer. Follow the call for Account 1048 down through the six layers of Super Intelligence.</p>
-              <div class="layer-text" aria-live="polite">
+      <section id="gate" class="ch relative h-[440svh] bg-[linear-gradient(180deg,var(--color-navy)_0%,#0A2259_60%,var(--color-navy-2)_100%)] text-on-navy max-lg:h-[400svh] in-[.no-js]:h-auto" data-tone="dark" aria-labelledby="h-gate">
+        <div class="sticky top-(--nav) z-3 flex h-[calc(100svh_-_var(--nav))] items-center pt-[clamp(20px,3.5vh,36px)] pb-[clamp(20px,3.5vh,36px)] *:relative *:z-3 compact:pb-4 max-lg:items-start max-lg:pt-3 lg:[@media(max-height:620px)]:pt-3.5 in-[.no-js]:relative in-[.no-js]:h-auto">
+          <div class="wrap grid w-full grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-center gap-[clamp(32px,4vw,80px)] max-lg:grid-cols-1 max-lg:content-start max-lg:gap-1.5">
+            <div class="grid content-center gap-5.5 max-lg:gap-2.5">
+              <h2 id="h-gate" class="reveal text-[length:clamp(2rem,1.1rem_+_2.6vw,3.75rem)] text-white max-lg:text-[1.75rem]">Every action passes the gate</h2>
+              <p class="fade max-w-[42ch] max-lg:hidden">Financial services needs more than a useful answer. Follow the call for Account 1048 down through the six layers of Super Intelligence.</p>
+              <div class="layer-text grid min-h-[9.5em] max-lg:min-h-[10em]" aria-live="polite">
                 {layers.map((l, i) => (
-                  <article data-i={i} data-active={i === 0 ? 'true' : 'false'}>
-                    <h3><span>Layer {i + 1} of 6</span>{l.name}</h3>
-                    <p>{l.text}</p>
+                  <article class="col-start-1 row-start-1 grid max-w-[44ch] content-start gap-2 in-[.no-js]:col-auto in-[.no-js]:row-auto in-[.no-js]:mb-5" data-i={i} data-active={i === 0 ? 'true' : 'false'}>
+                    <h3 class="grid gap-0.5 text-white"><span class="text-small font-semibold tracking-normal text-dim">Layer {i + 1} of 6</span>{l.name}</h3>
+                    <p class="max-lg:text-small">{l.text}</p>
                   </article>
                 ))}
               </div>
-              <ul class="checks" aria-label="Controls passed">
-                {checks.map((c, i) => <li data-i={i}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" /></svg>{c}</li>)}
+              <ul class="checks flex flex-wrap gap-2" aria-label="Controls passed">
+                {checks.map((c, i) => <li class="group/c inline-flex items-center gap-1.5 rounded-full bg-on-navy/8 py-[7px] pr-3 pl-[9px] text-small font-semibold text-dim transition-colors duration-300 data-[on=true]:bg-green/18 data-[on=true]:text-mint max-lg:py-[5px] max-lg:pr-2.5 max-lg:pl-[7px] max-lg:text-[.8125rem]" data-i={i}><svg class="size-4 fill-none stroke-current stroke-2 opacity-35 transition-opacity duration-300 [stroke-linecap:round] [stroke-linejoin:round] group-data-[on=true]/c:opacity-100" viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" /></svg>{c}</li>)}
               </ul>
             </div>
             <div class="stack-wrap" aria-hidden="true">
@@ -334,54 +344,52 @@ const hasVoice = existsSync('public/audio/her-line.mp3');
                 <div class="packet"><span class="split"></span></div>
                 <div class="reviewer"><span>Sent to an authorised reviewer</span><b>Approved</b></div>
               </div>
-              <p class="gate-tag" id="gate-tag">Proposed action: follow-up call, Tamil</p>
+              <p class="absolute inset-x-0 bottom-0 text-center text-body font-semibold text-white max-lg:text-small" id="gate-tag">Proposed action: follow-up call, Tamil</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="engines" class="ch engines" data-state="engines" data-tone="light" aria-labelledby="h-engines">
-        <div class="wrap engines-grid">
-          <div class="stage lanes" data-stage>
-            <ul class="index">
+      <section id="engines" class="ch relative bg-[linear-gradient(180deg,#ECF2FF_0%,var(--color-white)_30%,#EEF4FF_100%)] pt-[clamp(56px,8vh,96px)] pb-[clamp(190px,28svh,280px)]" data-state="engines" data-tone="light" aria-labelledby="h-engines">
+        <div class="wrap relative z-3 grid grid-cols-[minmax(0,7fr)_minmax(0,5fr)] items-start gap-x-[clamp(32px,5vw,96px)] gap-y-10 max-lg:grid-cols-1">
+          <div class="pointer-events-none relative z-1 min-h-[clamp(460px,66svh,640px)] max-lg:order-2 max-lg:min-h-[320px]" data-stage>
+            <ul class="absolute inset-0">
               {engines.map((e, i) => (
-                <li style={`--i:${i}`}>
-                  <button class="row" data-engine={e.id} data-n={i} aria-pressed={i === 0 ? 'true' : 'false'} aria-controls="engine-preview">
-                    <span class="row-name">{e.name}</span>{i === 0 && <small>Start here</small>}
+                <li class="absolute top-[calc(10%_+_16%*var(--i))] right-0 w-[26%] -translate-y-1/2 max-lg:w-1/2" style={`--i:${i}`}>
+                  <button class="group/r pointer-events-auto -ml-3 flex min-h-11 w-full flex-wrap items-center gap-x-2.5 rounded-lg px-3 py-1.5 text-left text-slate transition-colors duration-200 after:size-[9px] after:rotate-45 after:border-t-2 after:border-r-2 after:border-current after:opacity-0 after:transition-opacity after:duration-200 after:content-[''] aria-pressed:bg-white aria-pressed:after:text-orange aria-pressed:after:opacity-100" data-engine={e.id} data-n={i} aria-pressed={i === 0 ? 'true' : 'false'} aria-controls="engine-preview">
+                    <span class="block text-[length:clamp(1.125rem,.8rem_+_.9vw,1.625rem)] leading-[1.1] font-bold tracking-[-.025em] transition-colors duration-200 group-hover/r:text-navy group-aria-pressed/r:text-navy motion-reduce:transition-none max-lg:text-[1rem]">{e.name}</span>{i === 0 && <small class="order-3 block basis-full text-[.8125rem] font-semibold whitespace-nowrap text-rust">Start here</small>}
                   </button>
                 </li>
               ))}
             </ul>
           </div>
-          <div class="engines-copy">
+          <div class="grid gap-5.5 self-center max-lg:contents">
             <h2 id="h-engines" class="reveal">One core, six specialists</h2>
-            <p class="fade">Start with collections and switch on the others without replacing your core systems. Availability of each engine for a deployment is confirmed during scoping.</p>
-            <div class="preview" id="engine-preview" data-ui aria-live="polite">
+            <p class="fade max-w-[44ch] text-slate max-lg:order-1">Start with collections and switch on the others without replacing your core systems. Availability of each engine for a deployment is confirmed during scoping.</p>
+            <div class="rounded-[10px] border border-line bg-white p-[clamp(18px,1.6vw,26px)] max-lg:order-3 max-lg:p-4" id="engine-preview" data-ui aria-live="polite">
               {engines.map((e, i) => (
-                <div class="ep" data-for={e.id} hidden={i !== 0}>
-                  <p class="card-title">{e.name} Intelligence</p>
-                  <p class="ep-line">{e.line}</p>
-                  <dl>
-                    <div><dt>Reads</dt><dd>{e.inputs}</dd></div>
-                    <div><dt>Does</dt><dd>{e.support}</dd></div>
-                    <div><dt>Returns</dt><dd>{e.output}</dd></div>
+                <div class="ep grid" data-for={e.id} hidden={i !== 0}>
+                  <p class={cardTitle}>{e.name} Intelligence</p>
+                  <p class="mb-2.5 text-slate">{e.line}</p>
+                  <dl class="grid">
+                    {[['Reads', e.inputs], ['Does', e.support], ['Returns', e.output]].map(([dt, dd]) => <div class="grid gap-[3px] border-t border-line py-2.5"><dt class="text-small font-semibold text-slate">{dt}</dt><dd class="text-small text-ink">{dd}</dd></div>)}
                   </dl>
                 </div>
               ))}
             </div>
           </div>
         </div>
-        <p class="wrap products fade">Super Intelligence also coordinates the Voice India products already beside your agents: <a href="https://www.voiceindia.ai/augmented-ai">Augmented AI</a>, which puts account context and next-best-action guidance in front of an agent while the call is live, and <a href="https://www.voiceindia.ai/resonance">Resonance</a>, which checks every human and AI call for quality and configured compliance signals. Integration depends on the configured deployment and connectors; it is not automatic.</p>
-        <svg class="crest" viewBox="0 0 1440 300" preserveAspectRatio="none" aria-hidden="true"><path d="M0 150C300 90 560 60 820 130S1240 230 1440 150V300H0Z" /></svg>
+        <p class="wrap fade relative z-3 mt-[clamp(40px,7vh,88px)] block max-w-none text-lead leading-normal text-slate lg:pr-[30%]">Super Intelligence also coordinates the Voice India products already beside your agents: <a class="font-bold text-navy underline decoration-orange/60 underline-offset-3" href="https://www.voiceindia.ai/augmented-ai">Augmented AI</a>, which puts account context and next-best-action guidance in front of an agent while the call is live, and <a class="font-bold text-navy underline decoration-orange/60 underline-offset-3" href="https://www.voiceindia.ai/resonance">Resonance</a>, which checks every human and AI call for quality and configured compliance signals. Integration depends on the configured deployment and connectors; it is not automatic.</p>
+        <svg class={`${crest} h-[22svh] fill-navy max-sm:h-[12svh]`} viewBox="0 0 1440 300" preserveAspectRatio="none" aria-hidden="true"><path d="M0 150C300 90 560 60 820 130S1240 230 1440 150V300H0Z" /></svg>
       </section>
 
-      <section id="security" class="ch trust" data-state="trust" data-tone="dark" aria-labelledby="h-trust">
-        <div class="wrap trust-grid">
-          <div class="trust-copy">
-            <h2 id="h-trust" class="reveal">It runs where your data already lives</h2>
-            <p class="fade">On premise, in a private cloud or hybrid. Data flows in, is understood, and stops at your boundary. Each workflow reads only the fields it is permitted to use, and personal data never goes to a model or provider your policy forbids.</p>
-            <table class="deploy" data-ui>
-              <caption>Three ways to deploy</caption>
+      <section id="security" class="ch relative bg-[linear-gradient(180deg,var(--color-navy)_0%,var(--color-navy)_30%,var(--color-navy-2)_100%)] pt-[clamp(48px,6vh,80px)] pb-[clamp(170px,24vh,260px)] text-on-navy" data-state="trust" data-tone="dark" aria-labelledby="h-trust">
+        <div class="wrap relative z-3 grid grid-cols-2 items-stretch gap-[clamp(32px,5vw,96px)] max-lg:grid-cols-1">
+          <div class="grid content-start gap-6.5 max-lg:contents">
+            <h2 id="h-trust" class="reveal text-white">It runs where your data already lives</h2>
+            <p class="fade max-w-[40ch] text-lead leading-[1.45] max-lg:order-1">On premise, in a private cloud or hybrid. Data flows in, is understood, and stops at your boundary. Each workflow reads only the fields it is permitted to use, and personal data never goes to a model or provider your policy forbids.</p>
+            <table class="deploy mt-2.5 w-full border-collapse text-small max-lg:order-3" data-ui>
+              <caption class="pb-3 text-left text-body font-bold text-white">Three ways to deploy</caption>
               <thead><tr><th scope="col">Model</th><th scope="col">Where Super Intelligence runs</th><th scope="col">Where your data goes</th></tr></thead>
               <tbody>
                 <tr tabindex="0" data-row="0"><th scope="row">On premise</th><td>Your own data centre</td><td>Nowhere. It never leaves.</td></tr>
@@ -389,64 +397,66 @@ const hasVoice = existsSync('public/audio/her-line.mp3');
                 <tr tabindex="0" data-row="2"><th scope="row">Hybrid</th><td>Split across both</td><td>Through one defined, approved flow</td></tr>
               </tbody>
             </table>
-            <p class="fade small-dk">Residency, network egress, retention, external model use and audit requirements are agreed during solution design. On premise and private cloud are not assumed to be identical.</p>
+            <p class="fade max-w-[52ch] text-small leading-[1.6] max-lg:order-4">Residency, network egress, retention, external model use and audit requirements are agreed during solution design. On premise and private cloud are not assumed to be identical.</p>
           </div>
-          <div class="stage walls-stage" data-stage aria-hidden="true"><span style="top:var(--y0,25%)">On premise</span><span style="top:var(--y1,50%)">Private cloud</span><span style="top:var(--y2,75%)">Hybrid</span><span class="edge">Your boundary</span></div>
+          <div class="pointer-events-none relative z-1 min-h-[clamp(420px,70svh,700px)] max-lg:order-2 max-lg:h-[200px] max-lg:min-h-[200px]" data-stage aria-hidden="true">
+            {[['--y0,25%', 'On premise'], ['--y1,50%', 'Private cloud'], ['--y2,75%', 'Hybrid']].map(([y, t]) => <span class="absolute left-0 w-[15%] -translate-y-1/2 text-[.8125rem] leading-[1.2] font-bold text-white" style={`top:var(${y})`}>{t}</span>)}
+            <span class="absolute top-[calc(var(--y0,25%)_-_64px)] right-[calc(18%_+_10px)] -translate-y-1/2 text-[.8125rem] leading-[1.2] font-bold text-dim max-lg:hidden">Your boundary</span>
+          </div>
         </div>
-        <div class="wrap rules">
-          <h3 class="rules-head fade">Written for the rules you answer to</h3>
+        <div class="wrap relative z-3 mt-[clamp(56px,9vh,110px)] grid grid-cols-3 gap-x-[clamp(24px,3vw,56px)] gap-y-7 max-lg:mt-12 max-lg:grid-cols-1">
+          <h3 class="fade col-span-full -mb-1 text-[length:clamp(1.75rem,1.1rem_+_1.4vw,2.125rem)] leading-[1.15] tracking-[-.03em] text-white max-lg:text-[1.75rem]">Written for the rules you answer to</h3>
           {rules.map((r) => (
-            <div class="rule fade">
-              <b>{r.by}</b>
-              <p>{r.rule}</p>
-              <p class="rule-how">{r.how}</p>
+            <div class="fade relative grid content-start gap-3 pt-4.5 before:absolute before:top-0 before:left-0 before:h-1 before:w-9 before:rounded-[2px] before:bg-green before:content-['']">
+              <b class="text-[length:clamp(2rem,1.2rem_+_2vw,3.25rem)] leading-none tracking-[-.04em] text-white">{r.by}</b>
+              <p class="text-small leading-[1.55]">{r.rule}</p>
+              <p class="text-small leading-[1.55] font-semibold text-white">{r.how}</p>
             </div>
           ))}
-          <p class="rules-note fade">Designed to support these requirements. Your compliance team confirms the controls during solution design.</p>
+          <p class="fade col-span-full text-small text-dim">Designed to support these requirements. Your compliance team confirms the controls during solution design.</p>
         </div>
-        <svg class="crest crest-light" viewBox="0 0 1440 300" preserveAspectRatio="none" aria-hidden="true"><path d="M0 190C360 250 700 140 1000 170S1320 230 1440 190V300H0Z" /></svg>
+        <svg class={crestLight} viewBox="0 0 1440 300" preserveAspectRatio="none" aria-hidden="true"><path d="M0 190C360 250 700 140 1000 170S1320 230 1440 190V300H0Z" /></svg>
       </section>
 
-      <section id="connect" class="ch connect" data-tone="light" aria-labelledby="h-connect" data-phase="read">
-        <div class="wrap connect-head">
-          <h2 id="h-connect" class="reveal">Read first. Act only where approved.</h2>
-          <p class="fade">Super Intelligence starts with read access to the systems you already trust. It expands into approved actions only after data, security and operational validation.</p>
-          <div class="phase" role="group" aria-label="Pilot phase">
-            <button type="button" data-phase="read" aria-pressed="true">Phase one: read</button>
-            <button type="button" data-phase="act" aria-pressed="false">Phase two: approved actions</button>
+      <section id="connect" class="ch connect relative bg-[linear-gradient(180deg,var(--color-mist)_0%,var(--color-white)_100%)] pt-[clamp(40px,7vh,88px)] pb-[clamp(64px,10vh,120px)]" data-tone="light" aria-labelledby="h-connect" data-phase="read">
+        <div class="wrap relative z-3 grid grid-cols-[minmax(0,7fr)_minmax(0,5fr)] items-end gap-x-[clamp(32px,5vw,96px)] gap-y-5 max-lg:grid-cols-1">
+          <h2 id="h-connect" class="reveal col-span-full max-w-[16ch]">Read first. Act only where approved.</h2>
+          <p class="fade max-w-[52ch] text-slate">Super Intelligence starts with read access to the systems you already trust. It expands into approved actions only after data, security and operational validation.</p>
+          <div class="phase inline-flex justify-self-end rounded-[10px] bg-ice p-1 max-lg:w-full max-lg:justify-self-start" role="group" aria-label="Pilot phase">
+            {[['read', 'Phase one: read', 'true'], ['act', 'Phase two: approved actions', 'false']].map(([ph, label, on]) => <button type="button" class="min-h-11 rounded-[7px] px-4 py-3 text-small font-bold text-slate transition-[background-color,color,scale] duration-200 active:scale-97 aria-pressed:bg-white aria-pressed:text-navy max-lg:flex-1 max-lg:px-2 max-lg:py-2.5" data-phase={ph} aria-pressed={on}>{label}</button>)}
           </div>
         </div>
-        <div class="wrap hub">
-          <p class="hub-mini" aria-hidden="true"><i></i>Super Intelligence</p>
-          <ul class="ports ports-l">
-            {connectors.slice(0, 3).map((c) => <li data-acts={c.acts ? 'yes' : 'no'}><b>{c.name}</b><span>{c.reads}</span><em>{c.acts ? `Acts: ${c.acts.charAt(0).toLowerCase() + c.acts.slice(1)}` : 'Stays read-only'}</em></li>)}
+        <div class="wrap hub relative z-3 mt-[clamp(32px,6vh,72px)] grid grid-cols-[minmax(0,1fr)_min(42vw,540px)_minmax(0,1fr)] items-stretch gap-[clamp(12px,2vw,32px)] max-lg:grid-cols-1 max-lg:gap-4.5 max-lg:before:absolute max-lg:before:top-16 max-lg:before:bottom-6 max-lg:before:left-[calc(var(--m)_+_35.5px)] max-lg:before:w-px max-lg:before:bg-blue/30 max-lg:before:content-['']">
+          <p class="hidden items-center gap-3 text-[15px] font-semibold text-navy max-lg:flex" aria-hidden="true"><i class="ml-1 size-16 flex-none rounded-full bg-navy"></i>Super Intelligence</p>
+          <ul class="ports grid grid-rows-[repeat(3,1fr)] max-lg:grid-rows-none max-lg:gap-4.5">
+            {connectors.slice(0, 3).map((c) => <li class={`${port} text-right`} data-acts={c.acts ? 'yes' : 'no'}><b class="text-[length:clamp(1.0625rem,.9rem_+_.4vw,1.3125rem)] leading-[1.2] tracking-[-.02em] text-navy">{c.name}</b><span>{c.reads}</span><em class={portEm}>{c.acts ? `Acts: ${c.acts.charAt(0).toLowerCase() + c.acts.slice(1)}` : 'Stays read-only'}</em></li>)}
           </ul>
-          <svg class="hub-svg" viewBox="0 0 600 600" aria-hidden="true">
+          <svg class="block h-auto w-full overflow-visible max-lg:hidden" viewBox="0 0 600 600" aria-hidden="true">
             <g class="wires"></g>
             <circle class="core" cx="300" cy="300" r="74" />
             <text x="300" y="292" text-anchor="middle" class="core-t">Super</text>
             <text x="300" y="318" text-anchor="middle" class="core-t">Intelligence</text>
           </svg>
-          <ul class="ports ports-r">
-            {connectors.slice(3).map((c) => <li data-acts={c.acts ? 'yes' : 'no'}><b>{c.name}</b><span>{c.reads}</span><em>{c.acts ? `Acts: ${c.acts.charAt(0).toLowerCase() + c.acts.slice(1)}` : 'Stays read-only'}</em></li>)}
+          <ul class="ports grid grid-rows-[repeat(3,1fr)] max-lg:grid-rows-none max-lg:gap-4.5">
+            {connectors.slice(3).map((c) => <li class={port} data-acts={c.acts ? 'yes' : 'no'}><b class="text-[length:clamp(1.0625rem,.9rem_+_.4vw,1.3125rem)] leading-[1.2] tracking-[-.02em] text-navy">{c.name}</b><span>{c.reads}</span><em class={portEm}>{c.acts ? `Acts: ${c.acts.charAt(0).toLowerCase() + c.acts.slice(1)}` : 'Stays read-only'}</em></li>)}
           </ul>
         </div>
-        <p class="wrap connect-note fade">Each connector is validated against your environment before use. No vendor is listed as supported until it has been checked.</p>
+        <p class="wrap fade relative z-3 mt-[clamp(28px,5vh,56px)] text-center text-small text-slate">Each connector is validated against your environment before use. No vendor is listed as supported until it has been checked.</p>
       </section>
 
-      <section id="outcomes" class="ch outcomes" data-tone="dark" aria-labelledby="h-outcomes">
-        <div class="wrap outcomes-grid">
-          <div class="outcomes-head">
-            <h2 id="h-outcomes" class="reveal">Judged by what changes</h2>
-            <p class="fade">A pilot measures six things, against a baseline you agree before it starts. Actual impact depends on your portfolio, data quality, workflow design, policy and that baseline.</p>
+      <section id="outcomes" class="ch relative bg-navy pt-[clamp(72px,11vh,140px)] pb-[clamp(80px,12vh,160px)] text-on-navy" data-tone="dark" aria-labelledby="h-outcomes">
+        <div class="wrap relative z-3 grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-start gap-x-[clamp(32px,5vw,96px)] gap-y-10 max-lg:grid-cols-1">
+          <div class="sticky top-[calc(var(--nav)_+_12vh)] grid gap-5.5 max-lg:static">
+            <h2 id="h-outcomes" class="reveal text-white">Judged by what changes</h2>
+            <p class="fade max-w-[40ch]">A pilot measures six things, against a baseline you agree before it starts. Actual impact depends on your portfolio, data quality, workflow design, policy and that baseline.</p>
           </div>
-          <ol class="measures">
+          <ol class="measures grid">
             {outcomes.map((o, i) => (
-              <li data-i={i} data-active={i === 0 ? 'true' : 'false'}>
-                <h3>{o.name}</h3>
-                <div class="m-body">
-                  <ul>{o.counts.map((c) => <li>{c}</li>)}</ul>
-                  <p>{o.her}</p>
+              <li class="group/m grid gap-3.5 py-[clamp(18px,4vh,40px)]" data-i={i} data-active={i === 0 ? 'true' : 'false'}>
+                <h3 class="text-[length:clamp(2.75rem,1rem_+_5vw,6.5rem)] leading-[.95] tracking-[-.05em] text-on-navy/22 transition-colors duration-[450ms] ease-out group-data-[active=true]/m:text-white motion-reduce:transition-none">{o.name}</h3>
+                <div class="grid gap-2.5 opacity-38 transition-opacity duration-[450ms] ease-out group-data-[active=true]/m:opacity-100 motion-reduce:transition-none">
+                  <ul class="flex flex-wrap gap-2">{o.counts.map((c) => <li class="rounded-full bg-on-navy/10 px-3 py-1.5 text-small font-semibold text-white group-data-[active=true]/m:first:bg-orange group-data-[active=true]/m:first:text-navy">{c}</li>)}</ul>
+                  <p class="max-w-[34ch] text-lead leading-[1.4] text-white">{o.her}</p>
                 </div>
               </li>
             ))}
@@ -454,72 +464,65 @@ const hasVoice = existsSync('public/audio/her-line.mp3');
         </div>
       </section>
 
-      <section id="pilot" class="ch cta" data-state="cta" data-tone="light" aria-labelledby="h-cta">
-        <div class="wrap cta-grid">
-          <div class="cta-copy">
+      <section id="pilot" class="ch relative bg-[linear-gradient(180deg,var(--color-mist)_0%,#EAF1FF_100%)] pt-[clamp(56px,8vh,104px)]" data-state="cta" data-tone="light" aria-labelledby="h-cta">
+        <div class="wrap relative z-3 grid grid-cols-[minmax(0,6fr)_minmax(0,5fr)] items-center gap-x-[clamp(32px,5vw,96px)] gap-y-10 max-lg:grid-cols-1">
+          <div class="grid gap-6">
             <h2 id="h-cta" class="reveal">Prove it on one workflow first</h2>
-            <p class="fade">Pick one collection segment or queue. Agree the baseline, the data it may use and who approves what. Run a controlled pilot, review the results, then decide what to scale.</p>
-            <ol class="pilot fade">
-              <li><b>Define</b> the use case, the baseline and what success means</li>
-              <li><b>Connect</b> data access, permissions and integration scope</li>
-              <li><b>Validate</b> recommendations, exceptions, security and outcomes</li>
-              <li><b>Scale</b> only after operational and governance sign-off</li>
+            <p class="fade max-w-[44ch] text-lead leading-[1.45]">Pick one collection segment or queue. Agree the baseline, the data it may use and who approves what. Run a controlled pilot, review the results, then decide what to scale.</p>
+            <ol class="fade grid gap-2.5">
+              {[['Define', 'the use case, the baseline and what success means'], ['Connect', 'data access, permissions and integration scope'], ['Validate', 'recommendations, exceptions, security and outcomes'], ['Scale', 'only after operational and governance sign-off']].map(([b, t]) => <li class="relative pl-5.5 text-slate before:absolute before:top-[.62em] before:left-0 before:size-2 before:rounded-full before:bg-orange before:content-['']"><b class="text-navy">{b}</b> {t}</li>)}
             </ol>
           </div>
-          <form class="form" id="demo" data-ui action={`mailto:${mail}`} method="get" novalidate>
-            <p class="card-title">Request a Collections SI demonstration</p>
-            <div class="f2">
-              <label>Name<input name="name" autocomplete="name" required /></label>
-              <label>Work email<input name="email" type="email" autocomplete="email" required /></label>
+          <form class="grid gap-3.5 rounded-[10px] border border-line bg-white p-[clamp(18px,1.6vw,26px)] shadow-[0_24px_60px_-32px_rgba(7,27,73,.35)]" id="demo" data-ui action={`mailto:${mail}`} method="get" novalidate>
+            <p class={cardTitle}>Request a Collections SI demonstration</p>
+            <div class="grid grid-cols-2 gap-3.5 max-lg:grid-cols-1">
+              <label class="grid gap-1.5 text-small font-semibold text-navy">Name<input class="field" name="name" autocomplete="name" required /></label>
+              <label class="grid gap-1.5 text-small font-semibold text-navy">Work email<input class="field" name="email" type="email" autocomplete="email" required /></label>
             </div>
-            <div class="f2">
-              <label>Organisation<input name="org" autocomplete="organization" required /></label>
-              <label>Role<input name="role" autocomplete="organization-title" /></label>
+            <div class="grid grid-cols-2 gap-3.5 max-lg:grid-cols-1">
+              <label class="grid gap-1.5 text-small font-semibold text-navy">Organisation<input class="field" name="org" autocomplete="organization" required /></label>
+              <label class="grid gap-1.5 text-small font-semibold text-navy">Role<input class="field" name="role" autocomplete="organization-title" /></label>
             </div>
-            <div class="f2">
-              <label>Use case
-                <select name="usecase"><option>Collections</option><option>Customer service</option><option>Portfolio intelligence</option><option>Risk and compliance</option><option>Other</option></select>
+            <div class="grid grid-cols-2 gap-3.5 max-lg:grid-cols-1">
+              <label class="grid gap-1.5 text-small font-semibold text-navy">Use case
+                <select class="field" name="usecase"><option>Collections</option><option>Customer service</option><option>Portfolio intelligence</option><option>Risk and compliance</option><option>Other</option></select>
               </label>
-              <label>Deployment
-                <select name="deploy"><option>Not sure yet</option><option>On premise</option><option>Private cloud</option><option>Hybrid</option></select>
+              <label class="grid gap-1.5 text-small font-semibold text-navy">Deployment
+                <select class="field" name="deploy"><option>Not sure yet</option><option>On premise</option><option>Private cloud</option><option>Hybrid</option></select>
               </label>
             </div>
-            <label>What would you like to prove?<textarea name="brief" rows="3"></textarea></label>
-            <div class="form-row">
+            <label class="grid gap-1.5 text-small font-semibold text-navy">What would you like to prove?<textarea class="field resize-y" name="brief" rows="3"></textarea></label>
+            <div class="flex flex-wrap items-center gap-x-6 gap-y-3.5">
               <button class="btn" type="submit">Prepare the request</button>
               <a class="link" href={`https://mail.google.com/mail/?view=cm&to=${mail}`} target="_blank" rel="noopener">Write in Gmail instead</a>
             </div>
-            <p class="form-note" id="form-note">Opens a written email to {mail}. Please leave out confidential customer information.</p>
+            <p class="text-small text-slate" id="form-note">Opens a written email to {mail}. Please leave out confidential customer information.</p>
           </form>
         </div>
-        <div class="stage foundation" data-stage aria-hidden="true"></div>
-        <svg class="crest" viewBox="0 0 1440 300" preserveAspectRatio="none" aria-hidden="true"><path d="M0 170C320 120 600 70 900 120S1280 210 1440 160V300H0Z" /></svg>
+        <div class="pointer-events-none relative z-1 mt-[clamp(24px,5vh,56px)] h-[clamp(200px,30svh,340px)] max-sm:h-[26svh]" data-stage aria-hidden="true"></div>
+        <svg class={crestNavy} viewBox="0 0 1440 300" preserveAspectRatio="none" aria-hidden="true"><path d="M0 170C320 120 600 70 900 120S1280 210 1440 160V300H0Z" /></svg>
       </section>
     </main>
 
-    <footer class="foot">
-      <div class="wrap closing">
-        <p class="closing-line fade">Account 1048 got one call, in Tamil, after payday. Which account is next?</p>
+    <footer class="foot relative flow-root bg-navy pb-10 text-on-navy">
+      <div class="wrap relative z-3 grid justify-items-start gap-5.5 pt-[clamp(72px,12vh,140px)]">
+        <p class="fade max-w-[28ch] text-[length:clamp(1.5rem,.9rem_+_1.6vw,2.5rem)] leading-[1.15] font-semibold tracking-[-.03em] text-white">Account 1048 got one call, in Tamil, after payday. Which account is next?</p>
         <a class="btn fade" href="#pilot">Book a demonstration</a>
-        <p class="closing-words fade">Intelligent. Compliant. Sovereign. Scalable.</p>
+        <p class="fade text-body font-semibold text-dim">Intelligent. Compliant. Sovereign. Scalable.</p>
       </div>
-      <div class="stage mark-stage" data-stage aria-hidden="true"></div>
-      <div class="wrap foot-grid">
-        <p class="foot-name"><b>Voice India Super Intelligence</b><br />AI-powered conversations. Stronger outcomes.</p>
-        <ul>
-          <li><a href="#account">Account 1048</a></li>
-          <li><a href="#gate">The gate</a></li>
-          <li><a href="#engines">Engines</a></li>
-          <li><a href="#security">Security</a></li>
-          <li><a href="#pilot">Pilot</a></li>
+      <div class="pointer-events-none relative z-1 mx-auto mt-[clamp(24px,5vh,56px)] mb-[clamp(32px,6vh,72px)] h-[clamp(180px,34svh,360px)] w-[calc(100%_-_2*var(--m))] max-w-[calc(1440px_-_2*var(--m))]" data-stage aria-hidden="true"></div>
+      <div class="wrap relative z-3 grid grid-cols-[minmax(0,4fr)_minmax(0,2fr)_minmax(0,2fr)_minmax(0,4fr)] gap-8 text-small max-xl:grid-cols-2">
+        <p class="leading-[1.6] max-xl:col-span-full"><b class="text-white">Voice India Super Intelligence</b><br />AI-powered conversations. Stronger outcomes.</p>
+        <ul class="grid content-start gap-2.5 leading-normal">
+          {navItems.map(([href, label]) => <li><a class={footLink} href={href}>{label}</a></li>)}
         </ul>
-        <ul>
-          <li><a href="https://www.voiceindia.ai/augmented-ai">Augmented AI</a></li>
-          <li><a href="https://www.voiceindia.ai/resonance">Resonance</a></li>
-          <li><a href="https://www.voiceindia.ai/">Voice India AI</a></li>
+        <ul class="grid content-start gap-2.5 leading-normal">
+          <li><a class={footLink} href="https://www.voiceindia.ai/augmented-ai">Augmented AI</a></li>
+          <li><a class={footLink} href="https://www.voiceindia.ai/resonance">Resonance</a></li>
+          <li><a class={footLink} href="https://www.voiceindia.ai/">Voice India AI</a></li>
         </ul>
-        <p class="contact"><a href={`mailto:${mail}`}>{mail}</a><br />Tell us what you would like to build.<br /><button class="copy" type="button" data-copy={mail}>Copy the address</button></p>
-        <p class="legal">© 2026 Voice India. Account 1048 is a simulated case; no real customer data is shown.</p>
+        <p class="leading-[1.7] max-xl:col-span-full"><a class={footLink} href={`mailto:${mail}`}>{mail}</a><br />Tell us what you would like to build.<br /><button class="mt-1.5 font-semibold text-white underline decoration-white/35" type="button" data-copy={mail}>Copy the address</button></p>
+        <p class="col-span-full mt-10">© 2026 Voice India. Account 1048 is a simulated case; no real customer data is shown.</p>
       </div>
     </footer>
 
