@@ -43,6 +43,7 @@ uniform vec2 uPo[5];     // how far each record has moved off its place on the d
 varying vec4 vCol;
 // what the core sets besides place and alpha: a grain's size (nearer is larger) and its colour
 float gSz = 1.;
+float gSw = 0.;  // how strongly her voice is passing through this grain right now: it is tinted the logo's green
 vec3 gCol = vec3(1.);
 
 // her voice: one thin band of grains drawn like a recording of speech. A smooth carrier swells and falls in
@@ -84,7 +85,7 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
       float talk = sin(ph * 3. + t * 1.6 + lat * 9.) * .6 + sin(ph * 7. - t * 2.3 + lat * 4.) * .3;
       float swell = pow(.5 + .5 * sin(lat * 9.42 - t * 1.3), 2.);
       vec3 ax = normalize(vec3(sin(t * .21), .5, cos(t * .21)));
-      float band = exp(-pow(dot(n, ax) / .05, 2.));
+      float band = exp(-pow(dot(n, ax) / .05, 2.)) * smoothstep(.8, 1., p2.x);
       float disp = talk * swell * .05 + band * (.04 + .04 * sin(ph * 16. - t * 4.5));
       q = n * Rr * (1. + disp);
       float lit = clamp(dot(n, normalize(vec3(-.5, .6, .65))) * .5 + .5, 0., 1.);
@@ -100,7 +101,8 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
         took += run + exp(-pow(length(vec3(nx, n.y, nz) - d) / .16, 2.));
         kept += run * smoothstep(.12, .8, da);
       }
-      took = min(1., took * 1.3); kept = min(1., kept * 2.4);
+      float alive = smoothstep(.88, 1., p2.x);
+      took = min(1., took * 1.3) * alive; kept = min(1., kept * 2.4) * alive;
       vec3 lift = mix(vec3(1.), vec3(.13, .78, .36), smoothstep(0., .6, kept / max(took, .001)));
       gCol = mix(mix(mix(blue, ice, lit), lift, took), orange, smoothstep(.25, .7, band));
       a = .5 + .45 * lit + band * .3 + took * .45;
@@ -128,14 +130,34 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
     // a record passing behind the sphere is hidden by it
     if (r3 >= .6 && q.z < 0. && length(q.xy) < Rr * .98) a *= .12;
     gSz = s * (r3 < .6 ? 1. : .92);
-    // arriving: every grain starts as dust across the screen and is drawn in, turning, the nearest first
-    float ar = clamp(p2.x * 1.5 - r3 * .25 - fract(r1 * 7.7) * .25, 0., 1.);
-    ar = 1. - pow(1. - ar, 3.);
-    vec2 dust = vec2(fract(r1 * 13.1 + r2 * 3.7), fract(r2 * 17.3 + r3 * 5.1)) * vec2(w, h) * 1.2 - vec2(w, h) * .1;
-    vec2 dd = dust - p1.xy; float sa = (1. - ar) * 2.2;
-    dust = p1.xy + vec2(dd.x * cos(sa) - dd.y * sin(sa), dd.x * sin(sa) + dd.y * cos(sa));
-    p = mix(dust, p, ar);
-    a *= .25 + .75 * ar;
+    // its birth, as p2.x runs from 0 to 1 on arrival. A point of light ignites at the centre; the grains come in
+    // from beyond the screen in a turning vortex, swelling as they fly; the sphere's rings lock in from the equator
+    // out to the poles; then the arms unfurl outwards from the core (the band and the pulses wake last, above)
+    float ar = p2.x;
+    if (ar < .999) {
+      float lat0 = (floor(r1 * 44.) + .5) / 44.;
+      bool sphere = r3 < .6;
+      float st0 = sphere ? .18 + abs(lat0 - .5) * 2. * .34 + r2 * .06 : .62 + fract(r2 * 7.3) * .08;
+      float l = clamp((ar - st0) / (sphere ? .26 : .3), 0., 1.);
+      float le = 1. - pow(1. - l, 3.);
+      if (sphere) {
+        float far = (.9 + r2) * max(w, h) * .75, a0 = r2 * 6.2832 + r1 * 3.;
+        float rad = mix(far, length(p - p1.xy), le), ang = mix(a0 + 5., atan(p.y - p1.y, p.x - p1.x), le);
+        vec2 fly = p1.xy + vec2(cos(ang), sin(ang)) * rad;
+        // the spark: a few grains are already at the centre, a small bright knot that swells before the rest arrive
+        bool spark = fract(r1 * 91.7) < .05;
+        float ka = r2 * 6.2832, kr = sqrt(fract(r1 * 13.7)) * Rr * (.03 + .16 * smoothstep(.02, .2, ar)) * (1. + .15 * sin(t * 9. + r1 * 20.));
+        vec2 knot = p1.xy + vec2(cos(ka), sin(ka)) * kr;
+        p = l > 0. ? mix(fly, p, le) : spark ? knot : fly;
+        a = l > 0. ? mix(1., a, le) * smoothstep(0., .08, l) : spark ? smoothstep(0., .06, ar) : 0.;
+        gSz *= 1. + (1. - le) * 1.6 * step(.001, l);
+      } else {
+        // an arm grows outwards from the core: the inner part shows first
+        float grow = clamp((ar - .62) / .34, 0., 1.);
+        p = p1.xy + (p - p1.xy) * mix(.55, 1., le);
+        a *= smoothstep(0., .25, grow * 1.25 - (1. - fract(u + t * (.03 + .012 * r1)))) * le;
+      }
+    }
     return vec3(R.xy + p, a);
   }
   if (mode > 4.5) {
@@ -150,6 +172,7 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
     float sw = exp(-pow(d.x / 46. - (fract(t * .14 + aShard * .17) * 9. - 4.5), 2.));
     p.y -= sw * (2. + 3. * r1);
     float lit = sw * .22;
+    gSw = sw;
     if (uJoin > 0.) {
       // held together: each piece tears off its record, lifting and shedding dust, turns as it crosses the desk,
       // and goes home to its place in her line, whole again
@@ -180,9 +203,12 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
     float sx = p1.x - p1.z * 1.15 + p1.z * 2.3 * said, pw = max(60., p1.z * .2);
     // full once as she first speaks; after that only a murmur as each new script arrives
     float pk = sin(3.14159 * said) * (uIntro.x < .999 ? .8 : .24);
+    // her voice passes through the line every few seconds; where it is, the voice under it glows green too
+    float phase = fract(t * .16) * 1.6 - .3;
     if (aShard > 4.5) {
       float x = mix(p2.x, p2.y, u);
-      return vec3(R.xy + uTilt * .45 + vec2(x, vy + voiceY(x, p2.x, p2.y, amp, sx, pk, pw)), (.22 + .36 * r1) * uIntro.w * smoothstep(0., .06, u));
+      gSw = exp(-pow((clamp((x - p1.x + p1.z) / (2. * p1.z), -1., 2.) - phase) / .09, 2.));
+      return vec3(R.xy + uTilt * .45 + vec2(x, vy + voiceY(x, p2.x, p2.y, amp, sx, pk, pw) - gSw * 3.), min(1., (.22 + .36 * r1 + gSw * .45) * uIntro.w * smoothstep(0., .06, u)));
     }
     float xn = clamp((pts.x - p1.x + p1.z) / (2. * p1.z), 0., 1.);
     // the next script arrives from left to right, the way the words are said, each grain lifting as it goes
@@ -197,7 +223,8 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
     // once it is said, the line breathes, and every few seconds her voice passes through it again, left to right,
     // lifting the grains it crosses
     p += vec2(sin(t * .6 + r1 * 6.2832), cos(t * .5 + r2 * 6.2832)) * .9;
-    float sw = exp(-pow((xn - (fract(t * .16) * 1.6 - .3)) / .07, 2.));
+    float sw = exp(-pow((xn - phase) / .07, 2.));
+    gSw = sw;
     p += vec2((r2 - .5) * 3., -4. - 6. * r1) * sw;
     return vec3(R.xy + uTilt + p, min(1., mix((.3 + .4 * r1) * uIntro.w, .74 + .26 * r2, ga) + sw * .25));
   }
@@ -309,9 +336,10 @@ void main() {
     : clamp(uMix * 1.7 - (aSeed.y * .55 + aSeed2.z * .15), 0., 1.);
   e = e < .5 ? 4. * e * e * e : 1. - pow(-2. * e + 2., 3.) / 2.;
   vec3 A = shape(uModeA, uRectA, uP1A, uP2A, aFrom, aAlt);
-  float szA = gSz; vec3 gA = gCol;
+  float szA = gSz, swA = gSw; vec3 gA = gCol;
+  gSz = 1.; gSw = 0.;
   vec3 B = uMix > 0. ? shape(uModeB, uRectB, uP1B, uP2B, aTo, aAlt) : A;
-  float szB = uMix > 0. ? gSz : szA; vec3 gB = gCol;
+  float szB = uMix > 0. ? gSz : szA, swB = uMix > 0. ? gSw : swA; vec3 gB = gCol;
   vec2 cc = uRectA.xy + uP1A.xy;
   if (burst) {
     // first the core holds its breath: it pulls in on itself, tighter and brighter
@@ -411,8 +439,11 @@ void main() {
   vec3 ice = mix(vec3(.153, .298, .608), vec3(.6, .72, .95), tone);
   vec3 orange = mix(vec3(.76, .255, .06), threadCol(2., 1.), tone);
   vec3 grain = txt < .5 ? ice : abs(aShard - 4.) < .5 ? orange : ink;
-  if (lineA) cA = grain;
-  if (lineB) cB = grain;
+  // where her voice is passing, the ink is tinted the logo's green (the word for salary keeps its orange)
+  vec3 green = mix(vec3(.07, .5, .22), vec3(.3, .9, .52), tone);
+  float keep = abs(aShard - 4.) < .5 ? 0. : .85;
+  if (lineA) cA = mix(grain, green, swA * keep);
+  if (lineB) cB = mix(grain, green, swB * keep);
   if (uModeA > 5.5) cA = gA;
   if (uModeB > 5.5) cB = gB;
   bool hyb = floor(aSeed.w * 3.) > 1.5 && aSeed2.z >= .16;

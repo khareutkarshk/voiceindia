@@ -73,15 +73,17 @@ let introTl = null, listen = null;
   // without particles it plays after a moment anyway)
   const tl = gsap.timeline({ paused: true, delay: 0.15 });
   setTimeout(() => tl.paused() && tl.play(), 1600);
-  tl.to(intro, { core: 1, duration: 2.6, ease: 'power2.out' }, 0);
+  // the core is born over four seconds (wave.js sets out the beats); the claim arrives while it forms
+  tl.to(intro, { core: 1, duration: 4.2, ease: 'none' }, 0);
   const h1 = $('#h-hero');
   tl.fromTo(h1, { y: '0.3em', clipPath: 'inset(0% 0% 100% 0%)' },
-    { y: 0, clipPath: 'inset(-20% -2% -20% -2%)', duration: 1.2, ease: 'expo.out' }, 0.5);
-  [[1, 1.05], [2, 1.3], [3, 1.8]].forEach(([k, at]) => tl.to(`[data-hero-in="${k}"]`, { opacity: 1, y: 0, duration: 0.9, ease: 'expo.out' }, at));
+    { y: 0, clipPath: 'inset(-20% -2% -20% -2%)', duration: 1.2, ease: 'expo.out' }, 1.4);
+  [[1, 1.9], [2, 2.2], [3, 2.8]].forEach(([k, at]) => tl.to(`[data-hero-in="${k}"]`, { opacity: 1, y: 0, duration: 0.9, ease: 'expo.out' }, at));
   // once it has arrived, the action says its line once: the pulse draws and lets go
   const cta = $('.btn-voice');
-  if (cta) tl.call(() => cta.classList.add('speak'), null, 2.4).call(() => cta.classList.remove('speak'), null, 3.6);
+  if (cta) tl.call(() => cta.classList.add('speak'), null, 3.4).call(() => cta.classList.remove('speak'), null, 4.6);
   introTl = tl;
+  window.__setCore = (v) => { tl.pause(); intro.core = v; }; // lets the review capture stop the core's birth at any beat
 })();
 // her recorded line, when there is one: her voice swells with it
 listen = createListen($('#listen'), { onStart: () => gsap.fromTo(intro, { amp: 0.8 }, { amp: 0, duration: 2.4, ease: 'sine.inOut' }) });
@@ -223,6 +225,16 @@ const space = (() => {
       c.globalAlpha = 0.2 * Math.pow(1 - k, 2) * Math.min(1, k * 4);
       c.beginPath(); c.arc(0, 0, R * (1.2 + k * 2.2), 0, Math.PI * 2); c.stroke();
     }
+    // the core's birth: as the spark catches, a ring of light rolls out across the screen, a green one after it
+    for (const [at, col, wide] of [[0.16, '#E6F0FF', 2.4], [0.24, '#3DDC84', 1.6]]) {
+      const k = (intro.core - at) / 0.5;
+      if (k <= 0 || k >= 1) continue;
+      c.setLineDash([]); c.strokeStyle = col;
+      c.lineWidth = wide * 4; c.globalAlpha = 0.08 * (1 - k);
+      c.beginPath(); c.arc(0, 0, R * (0.15 + k * 6.5), 0, Math.PI * 2); c.stroke();
+      c.lineWidth = wide; c.globalAlpha = 0.6 * Math.pow(1 - k, 1.5);
+      c.beginPath(); c.arc(0, 0, R * (0.15 + k * 6.5), 0, Math.PI * 2); c.stroke();
+    }
     // the burst: one bright ring thrown out across the screen
     if (heroBurst > 0.005 && heroBurst < 0.995) {
       c.setLineDash([]);
@@ -341,6 +353,7 @@ const keys = $$('#problem [data-key]'), seal = $('[data-seal]');
 function reveal() {
   found = true;
   // the facts the next call is drawn from are marked on their records, one after another, and the seal answers
+  $('#fifth-call').dataset.found = 'true';
   ['salary', 'hours', 'lang'].forEach((k, i) => keys.filter((el) => el.dataset.key === k).forEach((el) => { el.style.setProperty('--hl', `${200 + i * 260}ms`); el.classList.add('lit'); }));
   if (seal && !reduced) { seal.classList.remove('pulse'); void seal.offsetWidth; seal.classList.add('pulse'); }
   const swap = () => { payoff.textContent = conclusion(); payoff.style.opacity = ''; payoff.style.filter = ''; };
@@ -586,7 +599,7 @@ const tones = $$('.ch[data-tone], .foot');
 const crests = $$('.crest:not(.crest-light)');
 const voiceText = $$('[data-voice-text]');
 const heroTop = $('#top'), heroCopy = $('[data-hero-copy]');
-let lastBurst = -1;
+let lastBurst = -1, lit = reduced ? 1 : 0;
 // the five systems' labels appear as their pieces of her line land; without particles, as the stage comes up
 const landStage = $('#problem [data-stage]');
 let landing = $$('[data-land]');
@@ -640,6 +653,8 @@ function frame(t) {
   desk();
   sync();
   if (space && scrollY < innerHeight * 1.2) space.draw(t);
+  // the core's light comes up as it is born
+  if (heroTop && lit < 1) { lit = clamp((intro.core - 0.1) / 0.5, 0, 1); heroTop.style.setProperty('--lit', lit.toFixed(3)); }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

@@ -36,7 +36,7 @@ const T = (text: string) => text.replaceAll('{lang}', `<span data-lang-name>${he
 // stations round a seal (x, y: percent of the stage; w: width), the centre left empty for the line to form whole in.
 // `key` marks the fact the conclusion is drawn from; it lights once the visitor has read the five as one.
 const sources = [
-  { name: 'Customer record', tag: '#1048', piece: 1, x: 50, y: 15, w: 29, rot: -0.03, z: 0.45, rows: [['Mobile', 'Verified'], ['KYC', 'Complete']] },
+  { name: 'Customer record', tag: '#1048', piece: 1, x: 50, y: 15, w: 29, rot: -0.03, z: 0.45, rows: [['Mobile', 'Verified', 'ok'], ['KYC', 'Complete', 'ok']] },
   { name: 'Call recordings', tag: '21 days', piece: 2, x: 82, y: 42, w: 31, rot: 0.045, z: 0.85, calls: true, rows: [['Calls', '4, of which 3 answered']] },
   { name: 'Policy PDF', tag: 'p. 4', piece: 3, x: 71, y: 80, w: 30, rot: -0.025, z: 0.3, page: true, rows: [['Contact hours', '8 am to 7 pm', 'hours'], ['Approved script', '{lang}', 'lang']] },
   { name: 'Transactions', tag: 'Passbook', piece: 4, x: 28, y: 80, w: 30, rot: 0.03, z: 1, rows: [['7th', 'Salary credited', 'salary'], ['1st', 'Instalment due']] },
@@ -276,9 +276,9 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
           </div>
         </div>
         <!-- The pale chapter rises in a low wave as her line breaks into its five records. -->
-        <!-- The pale chapter rises as a tide while her line breaks (main.js swells it), a softer swell behind the first -->
+        <!-- The pale chapter rises as a tide while her line breaks (main.js swells it): a brand-blue swell, then the ground -->
         <svg class="tide pointer-events-none absolute inset-x-0 -bottom-px z-1 h-[clamp(32px,4.5svh,48px)] w-full fill-mist" viewBox="0 0 1440 140" preserveAspectRatio="none" aria-hidden="true" data-tide>
-          <path class="opacity-40" d="M0 40C220 70 420 10 700 30S1150 90 1440 26V140H0Z" />
+          <path class="fill-blue" d="M0 40C220 70 420 10 700 30S1150 90 1440 26V140H0Z" />
           <path d="M0 64C170 42 330 22 500 42S790 105 980 82 1270 32 1440 48V140H0Z" />
         </svg>
       </section>
