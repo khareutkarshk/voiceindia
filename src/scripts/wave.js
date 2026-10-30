@@ -120,7 +120,9 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
     }
     // the sphere turns slowly; the disc it sits in holds still, so the gate and the arms read as one calm plane.
     // All of it leans a little towards the pointer
-    float ry = (r3 < .6 ? t * .12 : 0.) + uTilt.x * .012, rx = -.18 + uTilt.y * .01, rz = -.2;
+    // while it is born the sphere spins like a spool winding thread, and slows to its resting turn as it completes
+    float spool = 3.2 * pow(1. - smoothstep(.25, 1., p2.x), 2.);
+    float ry = (r3 < .6 ? t * .12 + spool : 0.) + uTilt.x * .012, rx = -.18 + uTilt.y * .01, rz = -.2;
     q = vec3(q.x * cos(ry) + q.z * sin(ry), q.y, -q.x * sin(ry) + q.z * cos(ry));
     q = vec3(q.x, q.y * cos(rx) - q.z * sin(rx), q.y * sin(rx) + q.z * cos(rx));
     q = vec3(q.x * cos(rz) - q.y * sin(rz), q.x * sin(rz) + q.y * cos(rz), q.z);
@@ -136,23 +138,35 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
     // green pulses wake after, above)
     float ar = p2.x;
     if (ar < .999) {
+      // it grows to its full size as it forms, and its heart beats once as the last ring locks in
+      float beat = sin(clamp((ar - .84) / .16, 0., 1.) * 3.14159);
+      p = p1.xy + (p - p1.xy) * (mix(.84, 1., smoothstep(.3, .86, ar)) + .07 * beat);
       if (r3 < .6) {
         float lat0 = (floor(r1 * 44.) + .5) / 44., k = abs(lat0 - .5) * 2.;
         float side = r2 < .5 ? -1. : 1., L = Rr * 1.7;
         float off = (k - .0227 + fract(r2 * 2.) * .0455) * L;
         float speak = Rr * (.025 + .13 * smoothstep(.07, .2, ar) * (1. - smoothstep(.26, .42, ar))) * sin(3.14159 * clamp(off / L, 0., 1.) + .3);
-        float x = side * off;
+        // once winding starts the line parts at the centre and is reeled in along itself, so each piece reaches the
+        // spool's edge just as its turn comes, and only hops the last short way onto its ring
+        float pulled = max(0., ar - .3) / .4 * L, opened = Rr * .92 * smoothstep(.3, .52, ar);
+        float x = side * max(opened + off - pulled, opened);
         vec2 onLine = p1.xy + vec2(x, sin(x * .045 - t * 6.) * speak + sin(x * .11 + t * 3.) * speak * .35 + g * .5);
         // each piece of line slides in from its inner end and wraps into its ring, lifting a little as it goes
-        float l = clamp((ar - (.3 + k * .4 + fract(r2 * 2.) * .05)) / .17, 0., 1.);
+        float at = .3 + k * .4 + fract(r2 * 2.) * .05;
+        float l = clamp((ar - at) / .17, 0., 1.);
         float le = l * l * l * (l * (l * 6. - 15.) + 10.);
         vec2 dir = p - onLine;
         vec2 lift = vec2(-dir.y, dir.x) * side * .12 * sin(l * 3.14159);
         p = l > 0. ? mix(onLine, p, le) + lift : onLine;
         // the line is drawn out from the centre first, and shines while it is only a voice
-        float drawn = step(off / L, smoothstep(0., .1, ar));
-        a = l > 0. ? mix(.95, a, le) : drawn * .9;
-        gSz *= l > 0. ? 1. + sin(l * 3.14159) * .35 : .85;
+        // two bright tips race out from the centre, laying the line down behind them
+        float reach = smoothstep(0., .12, ar), tip = exp(-pow((off / L - reach) / .035, 2.)) * (1. - smoothstep(.1, .14, ar));
+        float drawn = step(off / L, reach);
+        // a piece of thread is white-hot while it flies, cools to its ring as it lands, and the ring flashes as it locks
+        float hot = sin(l * 3.14159), lock = exp(-pow((ar - at - .17) / .025, 2.)) * step(.001, l);
+        a = l > 0. ? min(1., mix(.95, a, le) + hot * .3 + lock * .5) : min(1., drawn * (.75 + abs(speak) / Rr * 2.) + tip);
+        gCol = mix(gCol, vec3(1.), l > 0. ? max(hot * .8, lock * .7) : .55 + tip * .45);
+        gSz *= l > 0. ? 1. + hot * .35 + lock * .4 : .85 + tip * 1.6;
       } else {
         // an arm grows outwards from the core: the inner part shows first
         float grow = clamp((ar - .72) / .26, 0., 1.);
@@ -812,7 +826,8 @@ export function createWave(canvas, { reduced = false } = {}) {
   const INK = [-1, 0, 0];
   const W = (tilt, amp, fray, voice, mass, yshift, os, c = [0, 0, 0, 0]) => ({ mode: 0, p1: [tilt, amp, fray, voice], p2: [mass, yshift, 0, os], col: INK, c });
   const states = [];
-  const push = (el, cfg, extra = {}) => { if (el) states.push({ el, ...cfg, ...extra, h0: 0, h1: 0, buf: null }); };
+  // a chapter held back from the page (`hidden`) has no shape
+  const push = (el, cfg, extra = {}) => { if (el && !el.closest('[hidden]')) states.push({ el, ...cfg, ...extra, h0: 0, h1: 0, buf: null }); };
   const sec = (id) => document.getElementById(id);
   const stageOf = (s) => s && s.querySelector('[data-stage]');
   push(stageOf(sec('top')), { mode: 6, p1: [0, 0, 1, 0], p2: [1, 0, 0, 0], col: INK, c: [0, 0, 0, 0] }, { name: 'hero', sec: sec('top'), box: sec('top')?.querySelector('[data-core]') });
@@ -843,11 +858,11 @@ export function createWave(canvas, { reduced = false } = {}) {
   });
   push(stageOf(sec('engines')), { mode: 3, p1: [narrow ? 0.48 : 0.72, 0, 0, 0], p2: [0, 0, 0, 0], col: INK, c: [1, 0, 0, 0] }, { name: 'engines', sec: sec('engines') });
   push(stageOf(sec('security')), { mode: 2, p1: [0.25, 0.5, 0.75, -1], p2: [0, 0, 0, 0], col: INK, c: [1, 0, 0, 0] }, { name: 'trust', sec: sec('security') });
-  const trust = states[states.length - 1];
+  const trust = states.find((s) => s.name === 'trust');
   push(stageOf(sec('pilot')), W(0.6, 0.8, 0, 0, 0, 0.02, 0.12), { name: 'cta', sec: sec('pilot') });
   const foot = document.querySelector('.foot');
   push(stageOf(foot), { mode: 1, p1: [0, 0, 0, reduced ? 0 : 0.25], p2: [0, 0, 0, 0], col: INK, c: [1, 1, 0, DOT] }, { name: 'foot', logo: true, sec: foot });
-  const grounds = [...document.querySelectorAll('.ch[data-tone], .foot')].map((el) => ({ el, tone: el.dataset.tone === 'dark' || el.classList.contains('foot') ? 1 : 0 }));
+  const grounds = [...document.querySelectorAll('.ch[data-tone]:not([hidden]), .foot:not([hidden])')].map((el) => ({ el, tone: el.dataset.tone === 'dark' || el.classList.contains('foot') ? 1 : 0 }));
 
   // ---------- layout ----------
   let vw = 0, vh = 0, dpr = 1, built = { w: 0 };

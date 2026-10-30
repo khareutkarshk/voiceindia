@@ -211,30 +211,11 @@ const space = (() => {
       const x = p.x - tilt.x * 10 * p.z, y = p.y - tilt.y * 6 * p.z;
       c.fillRect(x, y, p.r, p.r);
     }
-    // middle: the rings of its voice, on the disc's tilt
+    // middle: on the disc's tilt, the shockwave of the scroll burst
     c.save();
     c.translate(cx - tilt.x * 4, cy - tilt.y * 3);
     c.rotate(0.2);
     c.scale(1, 0.46);
-    // a murmur, not a pulse: three faint rings, slow, gone before they reach the words
-    c.lineWidth = 1.1;
-    c.setLineDash([1, 8]);
-    c.strokeStyle = '#8EA2CF';
-    for (let i = 0; i < 3; i++) {
-      const k = (s / 7 + i / 3) % 1;
-      c.globalAlpha = 0.2 * Math.pow(1 - k, 2) * Math.min(1, k * 4);
-      c.beginPath(); c.arc(0, 0, R * (1.2 + k * 2.2), 0, Math.PI * 2); c.stroke();
-    }
-    // the core's birth: as its last ring locks in, one soft ring of light rolls out across the screen
-    for (const [at, col, wide] of [[0.8, '#E6F0FF', 2]]) {
-      const k = (intro.core - at) / 0.45;
-      if (k <= 0 || k >= 1) continue;
-      c.setLineDash([]); c.strokeStyle = col;
-      c.lineWidth = wide * 4; c.globalAlpha = 0.08 * (1 - k);
-      c.beginPath(); c.arc(0, 0, R * (0.15 + k * 6.5), 0, Math.PI * 2); c.stroke();
-      c.lineWidth = wide; c.globalAlpha = 0.45 * Math.pow(1 - k, 1.5);
-      c.beginPath(); c.arc(0, 0, R * (0.15 + k * 6.5), 0, Math.PI * 2); c.stroke();
-    }
     // the burst: one bright ring thrown out across the screen
     if (heroBurst > 0.005 && heroBurst < 0.995) {
       c.setLineDash([]);
@@ -654,7 +635,11 @@ function frame(t) {
   sync();
   if (space && scrollY < innerHeight * 1.2) space.draw(t);
   // the core's light comes up as it is born
-  if (heroTop && lit < 1) { lit = clamp((intro.core - 0.05) / 0.8, 0, 1); heroTop.style.setProperty('--lit', lit.toFixed(3)); }
+  if (heroTop && intro.core <= 1 && lit !== 2) {
+    const flare = Math.sin(clamp((intro.core - 0.84) / 0.16, 0, 1) * Math.PI) * 0.18;
+    heroTop.style.setProperty('--lit', (clamp((intro.core - 0.05) / 0.8, 0, 1) + flare).toFixed(3));
+    if (intro.core >= 1) lit = 2;
+  }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

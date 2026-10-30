@@ -190,7 +190,9 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
           <Image src={logoDark} alt="Voice India" width={168} height={42} loading="eager" fetchpriority="high" class="absolute inset-0 size-full object-contain transition-opacity duration-300 group-data-[tone=light]/nav:opacity-0" />
           <Image src={logoLight} alt="" width={168} height={42} loading="eager" class="absolute inset-0 size-full object-contain opacity-0 transition-opacity duration-300 group-data-[tone=light]/nav:opacity-100" />
         </a>
-        <nav aria-label="Sections" class="max-md:hidden">
+        <!-- Held for review: every chapter after "Her account sits in five systems" carries `hidden data-held`, and so do
+             these links, which all point at held chapters. Remove both to bring them back. -->
+        <nav aria-label="Sections" class="max-md:hidden" hidden data-held>
           <ul class="flex gap-[clamp(20px,2.6vw,40px)] text-small font-semibold">
             {navItems.map(([href, label]) => <li><a class={navLink} href={href}>{label}</a></li>)}
           </ul>
@@ -339,7 +341,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
         <svg class={crestLight} viewBox="0 0 1440 300" preserveAspectRatio="none" aria-hidden="true"><path d="M0 210C300 150 640 120 940 170S1300 250 1440 200V300H0Z" /></svg>
       </section>
 
-      <section id="loop" class="ch relative h-[calc(var(--steps)*40svh_+_100svh)] bg-[linear-gradient(180deg,var(--color-white)_0%,var(--color-mist)_100%)] max-lg:h-[calc(var(--steps)*44svh_+_100svh)] in-[.no-js]:h-auto" data-tone="light" aria-labelledby="h-loop" style={`--steps:${loop.length}`}>
+      <section id="loop" hidden data-held class="ch relative h-[calc(var(--steps)*40svh_+_100svh)] bg-[linear-gradient(180deg,var(--color-white)_0%,var(--color-mist)_100%)] max-lg:h-[calc(var(--steps)*44svh_+_100svh)] in-[.no-js]:h-auto" data-tone="light" aria-labelledby="h-loop" style={`--steps:${loop.length}`}>
         <div class={`${pin} flex items-center`}>
           <div class="wrap grid w-full grid-cols-[minmax(0,6fr)_minmax(0,5fr)] items-center gap-[clamp(40px,6vw,120px)] max-lg:grid-cols-1 max-lg:gap-4.5">
             <div class="relative aspect-square w-[min(100%,68svh)] justify-self-center max-lg:w-[min(70vw,36svh)]">
@@ -367,7 +369,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
         </div>
       </section>
 
-      <section id="account" class="ch case relative h-[calc(var(--steps)*66svh_+_100svh)] bg-[linear-gradient(180deg,#FFFFFF_0%,var(--color-mist)_40%,#ECF2FF_100%)] compact:h-[calc(var(--steps)*70svh_+_100svh)] in-[.no-js]:h-auto" data-state="case" data-tone="light" aria-labelledby="h-case" style={`--steps:${steps.length}`}>
+      <section id="account" hidden data-held class="ch case relative h-[calc(var(--steps)*66svh_+_100svh)] bg-[linear-gradient(180deg,#FFFFFF_0%,var(--color-mist)_40%,#ECF2FF_100%)] compact:h-[calc(var(--steps)*70svh_+_100svh)] in-[.no-js]:h-auto" data-state="case" data-tone="light" aria-labelledby="h-case" style={`--steps:${steps.length}`}>
         <div class={`${pin} grid grid-rows-[auto_minmax(0,1fr)] gap-[clamp(16px,3vh,32px)] compact:gap-3`}>
           <div class="wrap flex w-full items-baseline justify-between gap-6">
             <h2 id="h-case" class="flex flex-wrap items-baseline gap-x-4.5 gap-y-1 text-[length:clamp(1.5rem,1rem_+_1.4vw,2.25rem)]">Account 1048 <span class="text-small font-medium tracking-normal text-slate compact:hidden">A simulated collections case</span></h2>
@@ -445,7 +447,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
         </div>
       </section>
 
-      <section id="gate" class="ch relative h-[440svh] bg-[linear-gradient(180deg,var(--color-navy)_0%,#0A2259_60%,var(--color-navy-2)_100%)] text-on-navy max-lg:h-[400svh] in-[.no-js]:h-auto" data-tone="dark" aria-labelledby="h-gate">
+      <section id="gate" hidden data-held class="ch relative h-[440svh] bg-[linear-gradient(180deg,var(--color-navy)_0%,#0A2259_60%,var(--color-navy-2)_100%)] text-on-navy max-lg:h-[400svh] in-[.no-js]:h-auto" data-tone="dark" aria-labelledby="h-gate">
         <div class="sticky top-(--nav) z-3 flex h-[calc(100svh_-_var(--nav))] items-center pt-[clamp(20px,3.5vh,36px)] pb-[clamp(20px,3.5vh,36px)] *:relative *:z-3 compact:pb-4 max-lg:items-start max-lg:pt-3 lg:[@media(max-height:620px)]:pt-3.5 in-[.no-js]:relative in-[.no-js]:h-auto">
           <div class="wrap grid w-full grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-center gap-[clamp(32px,4vw,80px)] max-lg:grid-cols-1 max-lg:content-start max-lg:gap-1.5">
             <div class="grid content-center gap-5.5 max-lg:gap-2.5">
@@ -481,7 +483,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
         </div>
       </section>
 
-      <section id="engines" class="ch relative bg-[linear-gradient(180deg,#ECF2FF_0%,var(--color-white)_30%,#EEF4FF_100%)] pt-[clamp(56px,8vh,96px)] pb-[clamp(190px,28svh,280px)]" data-state="engines" data-tone="light" aria-labelledby="h-engines">
+      <section id="engines" hidden data-held class="ch relative bg-[linear-gradient(180deg,#ECF2FF_0%,var(--color-white)_30%,#EEF4FF_100%)] pt-[clamp(56px,8vh,96px)] pb-[clamp(190px,28svh,280px)]" data-state="engines" data-tone="light" aria-labelledby="h-engines">
         <div class="wrap relative z-3 grid grid-cols-[minmax(0,7fr)_minmax(0,5fr)] items-start gap-x-[clamp(32px,5vw,96px)] gap-y-10 max-lg:grid-cols-1">
           <div class="pointer-events-none relative z-1 min-h-[clamp(460px,66svh,640px)] max-lg:order-2 max-lg:min-h-[320px]" data-stage>
             <ul class="absolute inset-0">
@@ -514,7 +516,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
         <svg class={`${crest} h-[22svh] fill-navy max-sm:h-[12svh]`} viewBox="0 0 1440 300" preserveAspectRatio="none" aria-hidden="true"><path d="M0 150C300 90 560 60 820 130S1240 230 1440 150V300H0Z" /></svg>
       </section>
 
-      <section id="security" class="ch relative bg-[linear-gradient(180deg,var(--color-navy)_0%,var(--color-navy)_30%,var(--color-navy-2)_100%)] pt-[clamp(48px,6vh,80px)] pb-[clamp(170px,24vh,260px)] text-on-navy" data-state="trust" data-tone="dark" aria-labelledby="h-trust">
+      <section id="security" hidden data-held class="ch relative bg-[linear-gradient(180deg,var(--color-navy)_0%,var(--color-navy)_30%,var(--color-navy-2)_100%)] pt-[clamp(48px,6vh,80px)] pb-[clamp(170px,24vh,260px)] text-on-navy" data-state="trust" data-tone="dark" aria-labelledby="h-trust">
         <div class="wrap relative z-3 grid grid-cols-2 items-stretch gap-[clamp(32px,5vw,96px)] max-lg:grid-cols-1">
           <div class="grid content-start gap-6.5 max-lg:contents">
             <h2 id="h-trust" class="reveal text-white">It runs where your data already lives</h2>
@@ -549,7 +551,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
         <svg class={crestLight} viewBox="0 0 1440 300" preserveAspectRatio="none" aria-hidden="true"><path d="M0 190C360 250 700 140 1000 170S1320 230 1440 190V300H0Z" /></svg>
       </section>
 
-      <section id="connect" class="ch connect relative bg-[linear-gradient(180deg,var(--color-mist)_0%,var(--color-white)_100%)] pt-[clamp(40px,7vh,88px)] pb-[clamp(64px,10vh,120px)]" data-tone="light" aria-labelledby="h-connect" data-phase="read">
+      <section id="connect" hidden data-held class="ch connect relative bg-[linear-gradient(180deg,var(--color-mist)_0%,var(--color-white)_100%)] pt-[clamp(40px,7vh,88px)] pb-[clamp(64px,10vh,120px)]" data-tone="light" aria-labelledby="h-connect" data-phase="read">
         <div class="wrap relative z-3 grid grid-cols-[minmax(0,7fr)_minmax(0,5fr)] items-end gap-x-[clamp(32px,5vw,96px)] gap-y-5 max-lg:grid-cols-1">
           <h2 id="h-connect" class="reveal col-span-full max-w-[16ch]">Read first. Act only where approved.</h2>
           <p class="fade max-w-[52ch] text-slate">Super Intelligence starts with read access to the systems you already trust. It expands into approved actions only after data, security and operational validation.</p>
@@ -575,7 +577,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
         <p class="wrap fade relative z-3 mt-[clamp(28px,5vh,56px)] text-center text-small text-slate">Each connector is validated against your environment before use. No vendor is listed as supported until it has been checked.</p>
       </section>
 
-      <section id="outcomes" class="ch relative bg-navy pt-[clamp(72px,11vh,140px)] pb-[clamp(80px,12vh,160px)] text-on-navy" data-tone="dark" aria-labelledby="h-outcomes">
+      <section id="outcomes" hidden data-held class="ch relative bg-navy pt-[clamp(72px,11vh,140px)] pb-[clamp(80px,12vh,160px)] text-on-navy" data-tone="dark" aria-labelledby="h-outcomes">
         <div class="wrap relative z-3 grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-start gap-x-[clamp(32px,5vw,96px)] gap-y-10 max-lg:grid-cols-1">
           <div class="sticky top-[calc(var(--nav)_+_12vh)] grid gap-5.5 max-lg:static">
             <h2 id="h-outcomes" class="reveal text-white">Judged by what changes</h2>
@@ -595,7 +597,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
         </div>
       </section>
 
-      <section id="pilot" class="ch relative bg-[linear-gradient(180deg,var(--color-mist)_0%,#EAF1FF_100%)] pt-[clamp(56px,8vh,104px)]" data-state="cta" data-tone="light" aria-labelledby="h-cta">
+      <section id="pilot" hidden data-held class="ch relative bg-[linear-gradient(180deg,var(--color-mist)_0%,#EAF1FF_100%)] pt-[clamp(56px,8vh,104px)]" data-state="cta" data-tone="light" aria-labelledby="h-cta">
         <div class="wrap relative z-3 grid grid-cols-[minmax(0,6fr)_minmax(0,5fr)] items-center gap-x-[clamp(32px,5vw,96px)] gap-y-10 max-lg:grid-cols-1">
           <div class="grid gap-6">
             <h2 id="h-cta" class="reveal">Prove it on one workflow first</h2>
@@ -635,7 +637,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
       </section>
     </main>
 
-    <footer class="foot relative flow-root bg-navy pb-10 text-on-navy">
+    <footer hidden data-held class="foot relative flow-root bg-navy pb-10 text-on-navy">
       <div class="wrap relative z-3 grid justify-items-start gap-5.5 pt-[clamp(72px,12vh,140px)]">
         <p class="fade max-w-[28ch] text-[length:clamp(1.5rem,.9rem_+_1.6vw,2.5rem)] leading-[1.15] font-semibold tracking-[-.03em] text-white">Account 1048 got one call, in <span data-lang-name>Hindi</span>, after payday. Which account is next?</p>
         <a class="btn fade" href="#pilot">Book a demonstration</a>
