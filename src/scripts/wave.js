@@ -38,7 +38,8 @@ uniform vec4 uPc[5];     // each broken piece: where it landed (x, y) and its ce
 uniform float uPr[5];    // and the turn it landed with
 uniform float uJoin;     // 0 broken, 1 held back together by the visitor
 uniform vec3 uHome;      // where the joined line forms, in the pieces' stage (x, y), and its scale against the pieces (z)
-uniform vec2 uLc[5];     // each piece's centre in her line, in her line's stage, px: what it turns about as it falls
+uniform vec2 uLc[5];
+uniform vec2 uPo[5];     // how far each record has moved off its place on the desk (depth), px: its piece rides with it     // each piece's centre in her line, in her line's stage, px: what it turns about as it falls
 varying vec4 vCol;
 // what the core sets besides place and alpha: a grain's size (nearer is larger) and its colour
 float gSz = 1.;
@@ -141,20 +142,32 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
     // her line in five pieces, each kept by one system; pts = this grain's place in its piece.
     // Her voice is not carried down: it fades where it was (see main)
     if (aShard > 4.5) return vec3(R.xy + vec2(r1, r2) * vec2(w, h), 0.);
-    vec2 p = pts;
+    vec4 pc = uPc[0]; float ro = uPr[0]; vec2 po = uPo[0];
+    for (int k = 1; k < 5; k++) if (abs(aShard - float(k)) < .5) { pc = uPc[k]; ro = uPr[k]; po = uPo[k]; }
+    vec2 d = pts - pc.xy;
+    vec2 p = pts + po;
+    // at rest her voice still passes through each piece now and then, lifting the ink it crosses
+    float sw = exp(-pow(d.x / 46. - (fract(t * .14 + aShard * .17) * 9. - 4.5), 2.));
+    p.y -= sw * (2. + 3. * r1);
+    float lit = sw * .22;
     if (uJoin > 0.) {
-      // held together: undo the piece's landing, so it goes home to its place in her line, whole again
-      vec4 pc = uPc[0]; float ro = uPr[0];
-      for (int k = 1; k < 5; k++) if (abs(aShard - float(k)) < .5) { pc = uPc[k]; ro = uPr[k]; }
-      vec2 d = pts - pc.xy;
+      // held together: each piece tears off its record, lifting and shedding dust, turns as it crosses the desk,
+      // and goes home to its place in her line, whole again
       float cs = cos(ro), sn = sin(ro);
-      float jj = clamp(uJoin * 1.24 - aShard * .06, 0., 1.);
+      float jj = clamp(uJoin * 1.3 - aShard * .075, 0., 1.);
       jj = jj * jj * (3. - 2. * jj);
+      float fl = sin(jj * 3.14159);
       vec2 home = uHome.xy + (vec2(d.x * cs + d.y * sn, -d.x * sn + d.y * cs) + pc.zw) * mix(1., uHome.z, jj);
       p = mix(p, home, jj);
+      vec2 pv = mix(pc.xy + po, uHome.xy + pc.zw * uHome.z, jj);
+      float spin = fl * (aShard - 2.) * .22, c2 = cos(spin), s2 = sin(spin);
+      vec2 q = (p - pv) * (1. + .18 * fl);
+      p = pv + vec2(q.x * c2 - q.y * s2, q.x * s2 + q.y * c2);
+      p.y -= fl * (34. + aShard * 9.);
+      p += (vec2(r1, r2) - .5) * pow(fl, 1.4) * (24. + 80. * r3 * r3);
     }
     p += vec2(sin(t * .6 + r1 * 6.2832), cos(t * .5 + r2 * 6.2832)) * .9;
-    return vec3(R.xy + p, .72 + .28 * r2);
+    return vec3(R.xy + p, min(1., .72 + .28 * r2 + lit));
   }
   if (mode > 3.5) {
     // p1 = her line's centre (x, y), its half width, the voice's baseline; p2 = where the voice starts and ends
@@ -478,7 +491,7 @@ export function createWave(canvas, { reduced = false } = {}) {
   const zero = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, zero); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(N * 2), gl.STATIC_DRAW);
   const U_ = {};
-  for (const n of ['uRes', 'uDpr', 'uTime', 'uMix', 'uApprove', 'uModeA', 'uModeB', 'uRectA', 'uRectB', 'uP1A', 'uP1B', 'uP2A', 'uP2B', 'uColA', 'uColB', 'uMouse', 'uBand', 'uBandTone', 'uCA', 'uCB', 'uFar', 'uSel', 'uIntro', 'uTilt', 'uTrail', 'uPc', 'uPr', 'uJoin', 'uHome', 'uLc']) U_[n] = gl.getUniformLocation(prog, n);
+  for (const n of ['uRes', 'uDpr', 'uTime', 'uMix', 'uApprove', 'uModeA', 'uModeB', 'uRectA', 'uRectB', 'uP1A', 'uP1B', 'uP2A', 'uP2B', 'uColA', 'uColB', 'uMouse', 'uBand', 'uBandTone', 'uCA', 'uCB', 'uFar', 'uSel', 'uIntro', 'uTilt', 'uTrail', 'uPc', 'uPr', 'uJoin', 'uHome', 'uLc', 'uPo']) U_[n] = gl.getUniformLocation(prog, n);
 
   // ---------- point shapes: a word or the logo, sampled to exactly N targets ----------
   const scratch = document.createElement('canvas');
@@ -695,7 +708,9 @@ export function createWave(canvas, { reduced = false } = {}) {
     const boxes = [];
     s.el.querySelectorAll('[data-shard]').forEach((el) => {
       const b = el.getBoundingClientRect();
-      boxes[+el.dataset.shard] = { x: b.left - r.left + b.width / 2, y: b.top - r.top + b.height / 2, w: el.offsetWidth, h: el.offsetHeight, rot: +el.dataset.rot || 0 };
+      const j = +el.dataset.shard;
+      // measured where the record lies on the desk, without the drift its depth gives it now
+      boxes[j] = { x: b.left - r.left + b.width / 2 - po[j * 2], y: b.top - r.top + b.height / 2 - po[j * 2 + 1], w: el.offsetWidth, h: el.offsetHeight, rot: +el.dataset.rot || 0 };
     });
     const out = new Float32Array(N * 2);
     if (!voice || !voice.lines || boxes.filter(Boolean).length < CUT) return out;
@@ -734,6 +749,9 @@ export function createWave(canvas, { reduced = false } = {}) {
     s.p1 = [b.left - r.left + b.width / 2, b.top - r.top + b.height / 2, Math.min(b.width, b.height) * (narrow ? 0.3 : 0.29), 0];
     return new Float32Array(N * 2);
   }
+
+  // how far each record has drifted off its place on the desk, by piece (main.js moves the records)
+  const po = new Float32Array(10);
 
   // ---------- states, in page order ----------
   // wave: p1 = tilt, amplitude, fray, voice; p2 = navy mass, y shift, -, overscan. Colours follow the ground.
@@ -987,12 +1005,12 @@ export function createWave(canvas, { reduced = false } = {}) {
     const pieces = [A, B].find((s) => s.mode === 5 && s.pc);
     gl.uniform1f(U_.uJoin, pieces ? join : 0);
     if (pieces) {
-      gl.uniform4fv(U_.uPc, pieces.pc); gl.uniform1fv(U_.uPr, pieces.rot);
+      gl.uniform4fv(U_.uPc, pieces.pc); gl.uniform1fv(U_.uPr, pieces.rot); gl.uniform2fv(U_.uPo, po);
       if (voice && voice.lines) gl.uniform2fv(U_.uLc, voice.lines[lang].pieces.flatMap((c) => [c.x, c.y]));
       // side by side, her line forms again across the middle of its stage; stacked, in the part of the list on screen.
       // It is set as wide as the stage comfortably holds
       const r = pieces === A ? ra : rb, stacked = pieces.p1[0];
-      const k = clamp((r.width * (stacked ? 0.84 : 0.74)) / (2 * pieces.lineR), 0.5, 2.4);
+      const k = clamp((r.width * (stacked ? 0.84 : 0.64)) / (2 * pieces.lineR), 0.5, 2.4);
       gl.uniform3f(U_.uHome, r.width / 2, stacked ? clamp(vh * 0.42 - r.top, 80, r.height - 80) : r.height / 2, k);
     }
     gl.uniform3f(U_.uMouse, mouse.x, mouse.y, reduced ? 0 : mouse.s);
@@ -1021,6 +1039,7 @@ export function createWave(canvas, { reduced = false } = {}) {
     setDeploy(i) { if (trust) trust.p1[3] = i; },
     setIntro(v) { Object.assign(intro, v); },
     setLang,
+    setPieceOffsets(a) { po.set(a); },
     setTilt(x, y) { tilt[0] = x; tilt[1] = y; },
     get lang() { return lang; },
     get morphing() { return performance.now() - morph0 < MORPH; },

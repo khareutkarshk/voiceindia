@@ -154,6 +154,25 @@ function parallax() {
 }
 const micro = $('[data-micro-in]');
 
+// ---------- her five records, at their heights above the desk ----------
+// A nearer record moves more with the pointer and the scroll than a lower one, and much more than the rosette under
+// them all; each piece of her line rides its record. Side by side only: stacked, the records are a plain list.
+const docs = $$('[data-doc]'), deskStage = $('#problem [data-stage]');
+const po = new Float32Array(10);
+function desk() {
+  if (!deskStage || reduced || innerWidth < 900) return;
+  const r = deskStage.getBoundingClientRect();
+  if (r.bottom < -100 || r.top > innerHeight + 100) return;
+  const rel = (r.top + r.height / 2 - innerHeight / 2) / innerHeight;
+  for (const d of docs) {
+    const z = +d.dataset.z, j = +d.dataset.doc;
+    const x = tilt.x * -34 * z, y = tilt.y * -20 * z + rel * (z - 0.4) * 90;
+    d.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
+    po[j * 2] = x; po[j * 2 + 1] = y;
+  }
+  if (field) field.setPieceOffsets(po);
+}
+
 // ---------- depth behind the core ----------
 // Three planes. Far: stars, barely moving. Middle: the rings of its voice, spreading out on the tilt of its disc,
 // and in the burst one bright ring thrown out across the screen. Near: a few motes so close they are out of focus,
@@ -317,9 +336,13 @@ nextBtn.addEventListener('click', () => goStep(current + 1));
 // The change is persistent so it works equally well with a mouse, trackpad, touch, or keyboard.
 const join = $('#join'), payoff = $('[data-payoff]'), joinStage = $('#problem [data-stage]');
 let joined = 0, joinTarget = 0, joinT = 0, found = false;
-const conclusion = () => `Read as one, the next call is clear: the 8th, after 6\u00a0pm, in\u00a0${her.name}.`;
+const conclusion = () => `The 8th, after 6\u00a0pm, in\u00a0${her.name}.`;
+const keys = $$('#problem [data-key]'), seal = $('[data-seal]');
 function reveal() {
   found = true;
+  // the facts the next call is drawn from are marked on their records, one after another, and the seal answers
+  ['salary', 'hours', 'lang'].forEach((k, i) => keys.filter((el) => el.dataset.key === k).forEach((el) => { el.style.setProperty('--hl', `${200 + i * 260}ms`); el.classList.add('lit'); }));
+  if (seal && !reduced) { seal.classList.remove('pulse'); void seal.offsetWidth; seal.classList.add('pulse'); }
   const swap = () => { payoff.textContent = conclusion(); payoff.style.opacity = ''; payoff.style.filter = ''; };
   if (reduced) return swap();
   // a short blur bridges the two sentences, so it reads as one line changing rather than two swapping
@@ -595,6 +618,7 @@ function frame(t) {
     if (landing && r && (!['hero', 'voice'].includes(r.a.name) || (r.b.name === 'scatter' && r.f > 0.85))) land();
   }
   parallax();
+  desk();
   sync();
   if (space && scrollY < innerHeight * 1.2) space.draw(t);
   requestAnimationFrame(frame);
