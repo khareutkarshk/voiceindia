@@ -6,6 +6,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText } from 'gsap/SplitText';
 import { createListen } from './listen.js';
+import { LANGS, langOf } from './langs.js';
 
 gsap.registerPlugin(ScrollTrigger, SplitText);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -39,7 +40,7 @@ function run(sec) {
 
 // ---------- entrances: headline lines rise out of a mask; supporting copy settles in after ----------
 (() => {
-  // [data-land] labels wait for their piece of the kolam instead (see sync)
+  // [data-land] labels wait for their piece of her line instead (see sync)
   const heads = $$('.reveal'), items = $$('.fade:not([data-land])');
   heads.forEach((h) => h.classList.add('in'));
   items.forEach((el) => { if (el.getBoundingClientRect().top < innerHeight) el.classList.add('in'); });
@@ -59,38 +60,56 @@ function run(sec) {
   });
 })();
 
-// ---------- the hero: her voice gathers the flour, the pulli settle, and one line is drawn round them all ----------
-// One timeline runs her subtitle and the kolam together; the particle layer reads `intro` every frame,
-// so it can arrive late and still be in step. Scrolling before it finishes hurries it to the end.
-const intro = reduced ? { gather: 0, amp: 0, settle: 1, tau: 1 } : { gather: 0, amp: 0, settle: 0, tau: 0 };
+// ---------- the hero: her voice, then her words rising out of it in the order she says them ----------
+// The particle layer reads `intro` every frame, so it can arrive late and still be in step.
+// Scrolling before it finishes hurries it to the end.
+const intro = reduced ? { rise: 1, amp: 0, voice: 1 } : { rise: 0, amp: 0, voice: 0 };
 let introTl = null, listen = null;
 (() => {
-  const en = $('.voice-en'), ta = $('.voice-ta'), cap = $('.voice figcaption');
+  const en = $('.voice-en'), cap = $('#voice-cap');
   if (!en || reduced) return;
-  const words = (el) => {
-    const parts = el.textContent.split(/(\s+)/);
-    el.textContent = '';
-    return parts.map((w) => {
-      if (!w.trim()) { el.append(w); return null; }
-      const s = document.createElement('span'); s.className = 'w'; s.textContent = w; el.append(s); return s;
-    }).filter(Boolean);
-  };
-  const said = words(ta), meant = words(en);
-  const tl = gsap.timeline({ delay: 0.5 });
-  tl.to(intro, { gather: 1, duration: 2.2, ease: 'power2.inOut' }, 0.3)
-    .from(said, { autoAlpha: 0, y: 6, duration: 0.5, ease: 'power2.out', stagger: 0.32 }, 0.6);
-  // each word she says is a breath of sound through the flour
-  said.forEach((_, i) => tl.to(intro, { amp: 0.9, duration: 0.14, ease: 'power2.out' }, 0.6 + i * 0.32)
-    .to(intro, { amp: 0.08, duration: 0.36, ease: 'power2.in' }, 0.74 + i * 0.32));
-  tl.from(meant, { autoAlpha: 0, y: 4, duration: 0.42, ease: 'power2.out', stagger: 0.06 }, 2.7)
-    .to(intro, { settle: 1, duration: 1.8, ease: 'power1.inOut' }, 3.0)
-    .to(intro, { amp: 0, duration: 0.6 }, 3.0)
-    .from(cap, { autoAlpha: 0, duration: 0.6 }, 3.6)
-    .to(intro, { tau: 1, duration: 6.4, ease: 'sine.inOut' }, 4.1)
-    .set(intro, { gather: 0 });
+  const tl = gsap.timeline({ delay: 0.4 });
+  tl.to(intro, { voice: 1, duration: 0.9, ease: 'power2.out' }, 0)
+    .to(intro, { rise: 1, duration: 2.1, ease: 'power2.inOut' }, 0.55);
+  // each word she says is a breath of sound through her voice
+  [0.55, 0.9, 1.22, 1.6].forEach((at) => tl.to(intro, { amp: 0.9, duration: 0.14, ease: 'power2.out' }, at)
+    .to(intro, { amp: 0.08, duration: 0.36, ease: 'power2.in' }, at + 0.14));
+  tl.to(intro, { amp: 0, duration: 0.6 }, 2.2)
+    .from(en, { autoAlpha: 0, y: 6, duration: 0.5, ease: 'power2.out' }, 2.3)
+    .from(cap, { autoAlpha: 0, duration: 0.6 }, 2.6);
   introTl = tl;
   listen = createListen($('#listen'), { onStart: () => tl.timeScale(1).restart(true) });
 })();
+
+// ---------- her language: the panel sets it and the story below follows ----------
+// Until someone chooses, her line passes through every script on the panel, one every few seconds, so each
+// visitor sees their own go by. It rests while the panel is pointed at or focused, while the tab is hidden and
+// once the page is scrolled; a choice ends it for good.
+let her = LANGS[0];
+const panel = $('[data-panel]'), langBtns = $$('[data-lang]', panel || document);
+function speak(code) {
+  if (code === her.code) return;
+  her = langOf(code);
+  langBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === code)));
+  $$('[data-lang-name]').forEach((el) => (el.textContent = her.name));
+  // in English her line already says what the gloss would
+  const gloss = $('.voice-en'); if (gloss) gloss.style.visibility = code === 'en' ? 'hidden' : '';
+  $$('[data-lang-line]').forEach((el) => { el.textContent = her.line; el.lang = code; });
+  $$('[data-lang-hello]').forEach((el) => { el.textContent = her.hello; el.lang = code; });
+  if (found) payoff.textContent = conclusion();
+  if (field) field.setLang(code);
+}
+if (panel) {
+  let chosen = false, resting = false;
+  langBtns.forEach((b) => b.addEventListener('click', () => { chosen = true; speak(b.dataset.lang); }));
+  ['pointerenter', 'focusin'].forEach((n) => panel.addEventListener(n, () => (resting = true)));
+  panel.addEventListener('pointerleave', () => (resting = panel.contains(document.activeElement)));
+  panel.addEventListener('focusout', (e) => (resting = panel.contains(e.relatedTarget) || panel.matches(':hover')));
+  if (!reduced) setTimeout(() => setInterval(() => {
+    if (chosen || resting || document.hidden || scrollY > 40 || (field && field.morphing)) return;
+    speak(LANGS[(LANGS.indexOf(her) + 1) % LANGS.length].code);
+  }, 3200), 2400);
+}
 
 // ---------- the loop: the orange arc follows the scroll round the ring ----------
 const loopSec = $('#loop');
@@ -146,9 +165,10 @@ nextBtn.addEventListener('click', () => goStep(current + 1));
 // The change is persistent so it works equally well with a mouse, trackpad, touch, or keyboard.
 const join = $('#join'), payoff = $('[data-payoff]'), joinStage = $('#problem [data-stage]');
 let joined = 0, joinTarget = 0, joinT = 0, found = false;
+const conclusion = () => `Read as one, the next call is clear: the 8th, after 6\u00a0pm, in\u00a0${her.name}.`;
 function reveal() {
   found = true;
-  const swap = () => { payoff.textContent = 'Read as one, the next call is clear: the 8th, after 6\u00a0pm, in\u00a0Tamil.'; payoff.style.opacity = ''; payoff.style.filter = ''; };
+  const swap = () => { payoff.textContent = conclusion(); payoff.style.opacity = ''; payoff.style.filter = ''; };
   if (reduced) return swap();
   // a short blur bridges the two sentences, so it reads as one line changing rather than two swapping
   payoff.style.opacity = '0'; payoff.style.filter = 'blur(4px)';
@@ -219,7 +239,7 @@ paintHold();
   const reviewer = $('.reviewer', sec), tag = $('#gate-tag');
   const Z = (i) => (2.5 - i) * 74 + 4;
   const words = [
-    [4, 'Proposed action: a follow-up call, in Tamil'],
+    [4, 'Proposed action: a follow-up call, in {lang}'],
     [5, 'Checked against permissions and policy'],
     [7.2, 'Higher impact: sent to an authorised reviewer'],
     [8.2, 'Approved and released to the voice channel'],
@@ -231,7 +251,7 @@ paintHold();
   function paint(t) {
     const L = t < 1.2 ? 0 : t < 2.2 ? 1 : t < 3.2 ? 2 : t < 7.2 ? 3 : t < 8.2 ? 4 : 5;
     const key = L + ':' + marks.filter((m) => t >= m).length + ':' + (t >= 6.1);
-    tag.textContent = words.find(([at]) => t < at)[1];
+    tag.textContent = words.find(([at]) => t < at)[1].replace('{lang}', her.name);
     if (key === last) return;
     last = key;
     plates.forEach((p, i) => (p.dataset.s = i < L ? 'done' : i === L ? 'now' : 'next'));
@@ -372,7 +392,7 @@ $$('[data-copy]').forEach((b) => b.addEventListener('click', () => {
 const tones = $$('.ch[data-tone], .foot');
 const crests = $$('.crest:not(.crest-light)');
 const voiceText = $('[data-voice-text]');
-// the five systems' labels appear as their pieces of the kolam land; without particles, as the stage comes up
+// the five systems' labels appear as their pieces of her line land; without particles, as the stage comes up
 const landStage = $('#problem [data-stage]');
 let landing = $$('[data-land]');
 const land = () => { landing.forEach((el) => el.classList.add('in')); landing = null; };
@@ -390,7 +410,7 @@ function sync() {
       break;
     }
   }
-  // her words step aside as the kolam starts to break (only when there are particles to break)
+  // her words and the panel step aside as her line starts to break (only when there are particles to break)
   // (side by side only: stacked, the pieces re-form in place and never cross her words)
   if (voiceText) voiceText.style.opacity = field && innerWidth >= 900 ? (1 - clamp((scrollY - 40) / 190, 0, 1)).toFixed(3) : '';
   if (landing && !field && landStage && landStage.getBoundingClientRect().top < innerHeight * 0.5) land();
@@ -419,6 +439,9 @@ function boot() {
     const f = createWave(canvas, { reduced });
     if (!f) { canvas.remove(); return; }
     field = f;
+    window.__field = f; // lets the review capture set her language and read the particle state
+    document.documentElement.classList.add('has-field');
+    f.setLang(her.code, true);
     // the pieces can only be held together where there are pieces to hold
     const wrap = $('[data-join-wrap]'); if (wrap) wrap.hidden = false;
     field.setApprove(approved);

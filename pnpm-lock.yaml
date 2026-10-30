@@ -11,13 +11,34 @@ importers:
       '@astrojs/sitemap':
         specifier: ^3.7.4
         version: 3.7.4
+      '@fontsource-variable/anek-bangla':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@fontsource-variable/anek-devanagari':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/anek-gujarati':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/anek-gurmukhi':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/anek-kannada':
         specifier: ^5.3.0
         version: 5.3.0
       '@fontsource-variable/anek-latin':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fontsource-variable/anek-malayalam':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/anek-odia':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@fontsource-variable/anek-tamil':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/anek-telugu':
         specifier: ^5.3.0
         version: 5.3.0
       '@fontsource-variable/plus-jakarta-sans':
@@ -228,14 +249,35 @@ packages:
   '@emnapi/wasi-threads@1.2.3':
     resolution: {integrity: sha512-ELEBe8PsLvvJ6QMr0zLt8ffvOHW/dc1m3CEzNMg7aJUv3bMaoDtw2TXyDAwkYBuroxxuHEwhRTLJSe5sya547g==}
 
+  '@fontsource-variable/anek-bangla@5.3.0':
+    resolution: {integrity: sha512-OekuT8LFbA86VSfLjv6I6V2SS5owqTN+NHmhsr+3qHpCr4oqehkjvgDGuAyPH65BOIqVme0eLK7c2Ucml9gblg==}
+
   '@fontsource-variable/anek-devanagari@5.3.0':
     resolution: {integrity: sha512-mng3nw6XK5/5agZqIgCHcspyYbXe5HcF3F6b8J3v7He3Ilk4Mp7/irelZnCNde1rPg2JSiC7LeuI9Y9DcZk4yw==}
+
+  '@fontsource-variable/anek-gujarati@5.3.0':
+    resolution: {integrity: sha512-GtBN+reElKGGx3GyOPeoGdrNiZx7uegRSEkCaGSssx3X9ED4c86N9n+HEkFyeNbnDkfkjXFh3tA1efB2fjwASw==}
+
+  '@fontsource-variable/anek-gurmukhi@5.3.0':
+    resolution: {integrity: sha512-j5DL4NrRRayz3qdFr/VsFuWpEpMmF5zv/mXp+Mtq6IYiSxuhppt0wPwex9Kwe2wmeSMDNlR91nJmOcOyCHWcAw==}
+
+  '@fontsource-variable/anek-kannada@5.3.0':
+    resolution: {integrity: sha512-Uvz2uR6aWvI4kRUAyO6BnghMSFs+R8xCR8C/FjBBPPA2UDuuyFm+3oTKSPns8u2SW0Axj8+MKN7xGASe+ke78g==}
 
   '@fontsource-variable/anek-latin@5.3.0':
     resolution: {integrity: sha512-NqJVtTUYWkPMPXsEy4Ve/xRnXrKLw/gfUYzLidSsdJAMEgNsRNYpJZkorD/xDyBS2mxhfu/y6KsWTetowCQjrQ==}
 
+  '@fontsource-variable/anek-malayalam@5.3.0':
+    resolution: {integrity: sha512-FJ9fo4s7OQ53mR0h5ndtRa9MkQLKo2fkChH8u87Tl40sQPBby5vzSqDA8PVm8HdS2zUhomRNAt2AFfWVd9SHXg==}
+
+  '@fontsource-variable/anek-odia@5.3.0':
+    resolution: {integrity: sha512-uYYVPGuKhnsQwN0k2U58iMUhDEXMJ9HKkRyLeKJsfd4g8yt8Zuqvj0E+lxdUZZSujsWLHsLxHbK6M8vl+MT4gA==}
+
   '@fontsource-variable/anek-tamil@5.3.0':
     resolution: {integrity: sha512-gIYFuSE22Piov6heULEv29zjPR/vSiMoGxwiJh+NuZa7kWDtm+K2x8VjCY1ph+ACN/ACS9cGPSTwDfc+mLvW4A==}
+
+  '@fontsource-variable/anek-telugu@5.3.0':
+    resolution: {integrity: sha512-0mMvBxwEi7qd3G8Q1MVx1Yzm5HQBb0Y5RMftKwageWsKW5Loocu+pv/qon8LUwUJTvFg8ZLA0EAS4KvyS2tEHg==}
 
   '@fontsource-variable/plus-jakarta-sans@5.3.0':
     resolution: {integrity: sha512-/l/4r0yyWK9JzAlmA0LiYgGgmJe/Gswt4jTJEzr5QhJfwMbvJZDmYWyW0M4X7yCK69BajMVlV/Lx8g7WDc1+sw==}
@@ -1689,11 +1731,25 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
+  '@fontsource-variable/anek-bangla@5.3.0': {}
+
   '@fontsource-variable/anek-devanagari@5.3.0': {}
+
+  '@fontsource-variable/anek-gujarati@5.3.0': {}
+
+  '@fontsource-variable/anek-gurmukhi@5.3.0': {}
+
+  '@fontsource-variable/anek-kannada@5.3.0': {}
 
   '@fontsource-variable/anek-latin@5.3.0': {}
 
+  '@fontsource-variable/anek-malayalam@5.3.0': {}
+
+  '@fontsource-variable/anek-odia@5.3.0': {}
+
   '@fontsource-variable/anek-tamil@5.3.0': {}
+
+  '@fontsource-variable/anek-telugu@5.3.0': {}
 
   '@fontsource-variable/plus-jakarta-sans@5.3.0': {}
 

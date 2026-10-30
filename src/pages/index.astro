@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import logoLight from '../assets/voiceindia-logo-on-light.png';
 import logoDark from '../assets/voiceindia-logo-on-dark.png';
 import '../styles/global.css';
+import { LANGS } from '../scripts/langs.js';
 
 const site = 'https://voiceindia.si/';
 const title = 'Voice India Super Intelligence for Banking and NBFCs';
@@ -24,15 +25,20 @@ const jsonLd = {
   ],
 };
 
-// The five places her story sits, and what each one knows about her. Each keeps one piece of the broken
-// kolam (`piece`, as cut in wave.js). On a wide screen the pieces stay where they were in the kolam, pushed
-// outward from its centre (x, y: the piece's centre, percent of the stage), each label on its outer side.
+// Her language: the hero's panel sets it, and every `{lang}` in the copy below follows (main.js). Hindi until then.
+const her = LANGS[0];
+const T = (text: string) => text.replaceAll('{lang}', `<span data-lang-name>${her.name}</span>`);
+
+// The five places her story sits, and what each one knows about her. Each keeps one piece of her broken line
+// (`piece`, as cut in wave.js: 4 is the word for salary, 0 to 3 the rest of the line from left to right).
+// On a wide screen the pieces hang apart in the stage (x, y: the piece's centre, percent of the stage),
+// each label on its outer side. The word for salary lands on the system that knows when it comes.
 const sources = [
-  { name: 'Customer record', fact: 'Mobile verified, KYC complete', piece: 3, x: 48.4, y: 24, side: 'above' },
-  { name: 'Loan system', fact: '₹48,500, 23 days overdue', piece: 2, x: 33.5, y: 44, side: 'left' },
-  { name: 'Call recordings', fact: '4 calls, 3 answered', piece: 4, x: 65, y: 40, side: 'right' },
-  { name: 'Transactions', fact: 'Salary credited on the 7th, instalment due on the 1st', piece: 1, x: 34, y: 70, side: 'below' },
-  { name: 'Policy PDF', fact: 'Calls 8 am to 7 pm, Tamil script approved', piece: 0, x: 63, y: 70, side: 'below' },
+  { name: 'Customer record', fact: 'Mobile verified, KYC complete', piece: 1, x: 48.4, y: 24, side: 'above' },
+  { name: 'Loan system', fact: '₹48,500, 23 days overdue', piece: 0, x: 33.5, y: 44, side: 'left' },
+  { name: 'Call recordings', fact: '4 calls, 3 answered', piece: 2, x: 65, y: 40, side: 'right' },
+  { name: 'Transactions', fact: 'Salary credited on the 7th, instalment due on the 1st', piece: 4, x: 34, y: 70, side: 'below' },
+  { name: 'Policy PDF', fact: 'Calls 8 am to 7 pm, {lang} script approved', piece: 3, x: 63, y: 70, side: 'below' },
 ];
 // the side labels share the stage's edge with the page margin, so they are narrower
 const labelSide: Record<string, string> = {
@@ -45,7 +51,7 @@ const labelSide: Record<string, string> = {
 // Sample: her calls since the due date. Each caller saw one system; nobody carried what she said to the next.
 const calls = [
   ['Day 3', 'No answer'],
-  ['Day 9', 'Asked to be called in Tamil'],
+  ['Day 9', 'Asked to be called in {lang}'],
   ['Day 15', '“I will pay, please give me time”', true],
   ['Day 21', '“After my salary comes”', true],
 ];
@@ -54,7 +60,7 @@ const calls = [
 const loop = [
   ['Understand', 'Build a contextual view of the customer, the account, its history and the situation right now.', 'Her account, four calls and her language, read together for the first time.', '4 calls, 1\u00a0language'],
   ['Predict', 'Estimate likely outcomes, identify risks and surface the accounts that deserve attention first.', 'An account that answers calls but never promises is worth a different approach.', '3 explanations'],
-  ['Decide', 'Recommend a next best action from evidence, institution policy and the options you have authorised.', 'One call, after her salary credit, inside permitted hours, in Tamil.', 'Call after salary'],
+  ['Decide', 'Recommend a next best action from evidence, institution policy and the options you have authorised.', 'One call, after her salary credit, inside permitted hours, in {lang}.', 'Call after salary'],
   ['Execute', 'Coordinate voice, messaging, human agents and enterprise workflows within assigned permissions.', 'The call is placed by the SI voice agent, with a person one click away.', 'Day\u00a08, 18:10'],
   ['Learn', 'Compare each recommendation with what actually happened, and improve through evaluated, governed updates.', 'Whether she paid is checked against the payment system, never assumed.', 'Payment checked'],
 ];
@@ -62,9 +68,9 @@ const loop = [
 // Account 1048. `word` is what the particles spell beside the step.
 const steps = [
   { word: '₹48,500', title: 'Why is this account stuck?', text: 'Four calls, no promise, 23 days past due. Super Intelligence reads the account, the calls and your policy together and proposes three explanations to test. The likeliest: her salary lands after the due date.' },
-  { word: 'தமிழ்', title: 'Call after payday, in Tamil', text: 'One recommended action, backed by two facts on record: she asked for a call after payday, and she prefers Tamil. No score is invented to make it look certain.' },
+  { word: '{self}', title: 'Call after payday, in {lang}', text: 'One recommended action, backed by two facts on record: she asked for a call after payday, and she prefers {lang}. No score is invented to make it look certain.' },
   { word: 'APPROVE', title: 'Nothing reaches her without approval', text: 'The action is checked against contact hours, consent and authority, and higher-impact actions wait for an authorised person. Hold the button on the case to approve this one.' },
-  { word: 'வணக்கம்', title: 'The call, in her language', text: 'The SI voice agent calls in Tamil, recognises her concern and records the follow-up she asks for. It makes no promise on her behalf.' },
+  { word: '{hello}', title: 'The call, in her language', text: 'The SI voice agent calls in {lang}, recognises her concern and records the follow-up she asks for. It makes no promise on her behalf.' },
   { word: 'CALLBACK', title: 'The outcome comes back', text: 'The disposition is logged, the payment is not assumed, and the result is compared with the recommendation. Strategy changes are approved before they reach production.' },
 ];
 
@@ -99,7 +105,7 @@ const rules = [
 const connectors = [
   { name: 'Core banking and lending', reads: 'Her account and repayment schedule', acts: '' },
   { name: 'Loan management and collections', reads: '23 days past due, ₹48,500 outstanding', acts: 'Dispositions and scheduled next actions' },
-  { name: 'CRM and case management', reads: 'Prefers Tamil, permitted contact hours', acts: 'Case notes and follow-ups' },
+  { name: 'CRM and case management', reads: 'Prefers {lang}, permitted contact hours', acts: 'Case notes and follow-ups' },
   { name: 'Telephony and communications', reads: 'Her four calls and what she said', acts: 'Approved calls and messages' },
   { name: 'Payments and reconciliation', reads: 'Checks for her salary-day payment', acts: '' },
   { name: 'Enterprise data and knowledge', reads: 'The recovery policy and approved scripts', acts: '' },
@@ -109,7 +115,7 @@ const outcomes = [
   { name: 'Recovery', counts: ['Collected amount', 'Recovery rate', 'Net recovery cost'], her: 'Did the ₹48,500 move, and what did it cost to move it?' },
   { name: 'Commitment', counts: ['Promise-to-pay rate', 'Kept promises', 'Broken promises'], her: 'One promise she keeps is worth more than three she breaks.' },
   { name: 'Contact', counts: ['Contact rate', 'Right-party contact', 'Attempts per resolution'], her: 'Four calls without a promise. The fifth should be the right one.' },
-  { name: 'Experience', counts: ['Dispute resolution time', 'Complaint rate', 'Repeat contact'], her: 'She asked for one thing: a call after payday, in Tamil.' },
+  { name: 'Experience', counts: ['Dispute resolution time', 'Complaint rate', 'Repeat contact'], her: 'She asked for one thing: a call after payday, in {lang}.' },
   { name: 'Operations', counts: ['Human handling time', 'Manual effort', 'Manager review time'], her: 'Agents spend their time on the moments that need a person.' },
   { name: 'Governance', counts: ['Policy exceptions', 'Action approval rate', 'Audit completeness'], her: 'Every action on her account can be traced and explained.' },
 ];
@@ -134,7 +140,7 @@ const bubble = 'max-w-[88%] rounded-[10px] px-3 py-2 leading-[1.4] compact:px-2.
 const port = 'group/p relative grid content-center gap-[3px] text-small text-slate max-lg:pl-16 max-lg:text-left max-lg:before:absolute max-lg:before:top-2.5 max-lg:before:left-[41px] max-lg:before:h-px max-lg:before:w-[18px] max-lg:before:bg-blue/30 max-lg:before:content-[""] max-lg:after:absolute max-lg:after:top-[5px] max-lg:after:left-[31px] max-lg:after:size-3.5 max-lg:after:rounded-full max-lg:after:border-2 max-lg:after:border-blue max-lg:after:bg-white max-lg:after:content-[""] max-lg:in-data-[phase=act]:data-[acts=yes]:after:animate-outflow max-lg:in-data-[phase=act]:data-[acts=yes]:after:border-orange max-lg:in-data-[phase=act]:data-[acts=yes]:after:bg-orange motion-reduce:after:animate-none';
 const portEm = 'translate-y-1 font-semibold text-[#94A3B8] not-italic opacity-0 transition-[opacity,translate] duration-300 ease-out in-data-[phase=act]:translate-y-0 in-data-[phase=act]:opacity-100 group-data-[acts=yes]/p:in-data-[phase=act]:text-rust';
 const navItems = [['#account', 'Her account'], ['#gate', 'The gate'], ['#engines', 'Engines'], ['#security', 'Security'], ['#pilot', 'Pilot']];
-const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language', 'Tamil'], ['Contacts', '4', true], ['Promise to pay', 'None', true], ['Last outcome', 'Call after salary', true]];
+const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language', '{lang}'], ['Contacts', '4', true], ['Promise to pay', 'None', true], ['Last outcome', 'Call after salary', true]];
 ---
 <!doctype html>
 <html lang="en-IN" class="no-js">
@@ -189,14 +195,14 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
     <main id="main">
       <section id="top" class="ch relative bg-navy text-on-navy" data-state="hero" data-tone="dark" aria-labelledby="h-hero">
         <div class={stage} data-stage aria-hidden="true"></div>
-        <!-- Words on the left, her kolam on the right like a picture on a wall, with what she said as its label. -->
+        <!-- Words on the left; on the right what she said, in particles, over the language panel of a rupee note. -->
         <div class="wrap relative z-3 grid min-h-[max(680px,calc(100svh_-_var(--nav)))] grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-x-[clamp(40px,5vw,96px)] py-[clamp(32px,6vh,72px)] pb-[clamp(56px,7.5vh,84px)] max-lg:min-h-0 max-lg:grid-cols-1 max-lg:gap-y-10 max-lg:pt-[clamp(28px,6vw,48px)] max-lg:pb-14">
           <!-- the claim sits in the middle of the column; the compliance note shares a baseline with her caption -->
           <!-- on narrow screens the column dissolves into the page grid, so the note can follow her line -->
           <div class="grid max-h-[760px] grid-rows-[minmax(0,1fr)_auto] self-center lg:h-full max-lg:contents">
             <div class="self-center">
             <h1 id="h-hero" class="reveal text-[length:clamp(2.75rem,.5rem_+_4.3vw,5.25rem)] leading-[1.02] font-semibold tracking-[-.04em] text-white max-lg:text-[length:min(4.5rem,8.6vw)] max-sm:text-[length:10vw]">Every late payment has a reason</h1>
-            <p class="fade mt-[clamp(24px,3.4vh,40px)] max-w-[42ch] text-lead leading-[1.45] text-on-navy max-sm:mt-5 max-sm:text-body">Voice India Super Intelligence helps banks and NBFCs read each overdue loan with what the borrower has already said, then proposes the next call your policy allows. Your team approves&nbsp;it.</p>
+            <p class="fade mt-[clamp(24px,3.4vh,40px)] max-w-[42ch] text-lead leading-[1.45] text-on-navy max-sm:mt-5 max-sm:text-body">Voice India Super Intelligence helps banks and NBFCs read each overdue loan with what the borrower has already said, in the language they said it, then proposes the next call your policy allows. Your team approves&nbsp;it.</p>
             <div class="fade mt-[clamp(28px,4vh,44px)] flex flex-wrap items-center gap-x-8 gap-y-4 max-sm:mt-6" style="--d:200ms">
               <a class="btn" href="#pilot">Book a demo</a>
               <a class="link text-white decoration-white/35 hover:decoration-white" href="#account">Follow one case</a>
@@ -204,26 +210,41 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
             </div>
             <p class="fade mt-10 max-w-[44ch] text-small text-on-navy max-lg:mt-0" style="--d:280ms">Runs on your premises or in your private cloud, within RBI, TRAI and DPDP Act&nbsp;rules.</p>
           </div>
-          <!-- Tamil lines here and in the case are drafts: to be verified by a native speaker before launch. -->
-          <figure class="voice grid h-full max-h-[760px] grid-rows-[minmax(0,1fr)_auto] self-center max-lg:h-auto" id="voice" aria-label="A simulated borrower, speaking Tamil">
-            <!-- The kolam: a grid of rice-flour dots with one unbroken line around every one of them, drawn in particles. -->
-            <div class="min-h-[340px] max-lg:h-[min(62vw,34svh)] max-lg:min-h-0" data-kolam aria-hidden="true"></div>
-            <!-- her words step aside as the kolam breaks, so its pieces fall through clear air -->
-            <div class="mt-[clamp(20px,3vh,32px)] max-w-[30rem]" data-voice-text>
-              <p class="voice-ta text-[length:clamp(1.1875rem,1rem_+_.45vw,1.4375rem)] leading-[1.45] font-medium text-white" lang="ta">சம்பளம் வந்த பிறகுதான் கட்ட முடியும். அதற்குப் பிறகு கூப்பிடுங்கள்.</p>
-              <p class="voice-en mt-2 text-body leading-normal text-on-navy">“I can only pay after my salary comes in. Call me after that.”</p>
-              <figcaption class="mt-3 text-small text-dim">Account 1048, 23 days past due. A simulated borrower. {hasVoice && <button type="button" class="ml-1.5 font-semibold text-white underline decoration-white/35 underline-offset-3 aria-pressed:decoration-orange" id="listen" aria-pressed="false">Hear her</button>}</figcaption>
+          <!-- Every line in an Indian script on this page is a draft, to be checked by a native speaker before launch. -->
+          <figure class="voice grid self-center" id="voice" aria-labelledby="voice-cap">
+            <!-- Her line in particles, engraved like the print on a note, with her voice running out under it to the
+                 screen's edge. The same words as type stand in where there are no particles. -->
+            <div class="relative h-[clamp(190px,27svh,260px)] max-lg:h-[clamp(130px,30vw,200px)]" data-line>
+              <p class="absolute inset-x-0 top-0 grid h-[64%] place-items-center text-[length:clamp(2.25rem,1rem_+_2.6vw,4rem)] leading-none font-semibold whitespace-nowrap text-white in-[.has-field]:opacity-0" lang={her.code} data-lang-line>{her.line}</p>
+            </div>
+            <!-- what she said and the panel step aside as her line breaks, so its pieces fall through clear air -->
+            <div class="mt-[clamp(12px,2vh,24px)]" data-voice-text>
+              <p class="voice-en text-lead leading-snug font-medium text-white">“After my salary comes.”</p>
+              <figcaption id="voice-cap" class="mt-2 text-small text-dim">Her fourth call, in <span data-lang-name>{her.name}</span>. Account 1048, a simulated borrower. {hasVoice && <button type="button" class="ml-1.5 font-semibold text-white underline decoration-white/35 underline-offset-3 aria-pressed:decoration-orange" id="listen" aria-pressed="false">Hear her</button>}</figcaption>
+              <!-- The panel: the same words in every script, set out like the languages on the back of a banknote. -->
+              <div class="fade mt-[clamp(24px,4.2vh,44px)]" style="--d:320ms">
+                <p id="panel-label" class="text-small font-semibold text-white">Choose the language she speaks</p>
+                <ul class="mt-3 grid grid-flow-col grid-cols-2 grid-rows-6 gap-x-8 max-sm:gap-x-4" aria-labelledby="panel-label" data-panel>
+                  {LANGS.map((L, i) => (
+                    <li>
+                      <button type="button" class="block w-full py-[5px] pl-3 text-left text-[.9375rem] leading-[1.35] text-dim transition-[color,box-shadow] duration-200 ease-out hover:text-on-navy aria-pressed:text-white aria-pressed:shadow-[inset_2px_0_var(--color-orange)] max-sm:text-[.875rem]" data-lang={L.code} aria-pressed={i === 0 ? 'true' : 'false'}>
+                        <span lang={L.code}>{L.line}</span><span class="sr-only">, {L.name}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </figure>
         </div>
-        <!-- The pale chapter rises in a low wave as the kolam loosens into its five records. -->
+        <!-- The pale chapter rises in a low wave as her line breaks into its five records. -->
         <svg class="pointer-events-none absolute inset-x-0 -bottom-px z-1 h-[clamp(32px,4.5svh,48px)] w-full fill-mist" viewBox="0 0 1440 140" preserveAspectRatio="none" aria-hidden="true">
           <path d="M0 64C170 42 330 22 500 42S790 105 980 82 1270 32 1440 48V140H0Z" />
         </svg>
       </section>
 
       <section id="problem" class="ch relative bg-mist pt-[clamp(72px,10vh,128px)] pb-[clamp(96px,14vh,170px)] text-ink max-lg:pt-10" data-state="scatter" data-tone="light" aria-labelledby="h-scatter">
-        <!-- The hero's kolam breaks here. Each piece drifts down to the system that keeps it, its label beneath it. -->
+        <!-- Her line breaks here. Each piece drifts down to the system that keeps it, its label beneath it. -->
         <div class="wrap relative z-3 grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-center gap-[clamp(32px,5vw,96px)] max-lg:grid-cols-1 max-lg:gap-12">
           <!-- top: the claim; middle: her four calls, each started from one piece; base: the line they lead to -->
           <!-- on stacked layouts the column dissolves into the section's grid, so the hold can follow the pieces -->
@@ -236,14 +257,14 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
               {calls.map(([day, said, quote]) => (
                 <li class="grid grid-cols-[5rem_minmax(0,1fr)] items-baseline gap-4 max-sm:grid-cols-[4rem_minmax(0,1fr)]">
                   <span class="text-small font-medium text-slate tabular-nums">{day}</span>
-                  <span class={quote ? 'font-medium text-navy' : 'text-slate'}>{said}</span>
+                  <span class={quote ? 'font-medium text-navy' : 'text-slate'} set:html={T(said)} />
                 </li>
               ))}
             </ol>
             <!-- the line the four calls lead to. Once the visitor has held the pieces together it becomes what they found,
                  and stays. On stacked layouts it follows the pieces, so the conclusion comes after the evidence. -->
             <p class="fade max-w-[24ch] text-[length:clamp(1.5rem,1.1rem_+_.9vw,2rem)] leading-[1.2] font-medium tracking-[-.02em] text-navy max-lg:order-last" style="--d:260ms" id="fifth-call" aria-live="polite"><span class="inline-block transition-[opacity,filter] duration-300 ease-out" data-payoff>So the fifth call sounds like the first&nbsp;four.</span></p>
-            <!-- Click, tap, or keyboard: bring the five fragments together into the original kolam. -->
+            <!-- Click, tap, or keyboard: bring the five pieces together into her line again. -->
             <div class="fade -mt-2 max-lg:order-last max-lg:-mt-4" style="--d:340ms" data-join-wrap hidden>
               <button class="relative h-12 overflow-hidden rounded-[4px] bg-blue px-6 font-semibold text-white transition-[scale] duration-150 ease-out select-none active:scale-98 motion-reduce:active:scale-100" id="join" type="button" aria-pressed="false">
                 <span class="hold-label flex h-full items-center">Bring her five records together</span>
@@ -251,12 +272,12 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
               </button>
             </div>
           </div>
-          <!-- wide: an exploded view of the hero's kolam. narrow: one row per system, its piece beside it -->
+          <!-- wide: her line, exploded. narrow: one row per system, its piece beside it -->
           <ul class="relative grid gap-7 lg:block lg:h-[clamp(600px,86svh,780px)] sm:max-lg:grid-cols-2 sm:max-lg:gap-x-10" data-stage aria-label="Where her account is kept">
             {sources.map(({ name, fact, piece, x, y, side }, i) => (
               <li class="relative grid grid-cols-[min(34vw,168px)_minmax(0,1fr)] items-center gap-5 transition-opacity duration-300 ease-out in-data-[joined=true]:opacity-0 sm:max-lg:last:col-span-2 sm:max-lg:last:justify-self-center lg:absolute lg:top-(--y) lg:left-(--x) lg:block lg:w-[22%] lg:-translate-1/2" style={`--x:${x}%;--y:${y}%`}>
                 <span class="block aspect-square" data-shard={piece} aria-hidden="true"></span>
-                <p class={`fade text-small leading-[1.4] text-slate lg:absolute ${labelSide[side]}`} data-land style={`--d:${260 + i * 80}ms`}><b class="block font-semibold text-navy">{name}</b>{fact}</p>
+                <p class={`fade text-small leading-[1.4] text-slate lg:absolute ${labelSide[side]}`} data-land style={`--d:${260 + i * 80}ms`}><b class="block font-semibold text-navy">{name}</b><Fragment set:html={T(fact)} /></p>
               </li>
             ))}
           </ul>
@@ -283,7 +304,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
                   <article class="loop-step col-start-1 row-start-1 grid max-w-[44ch] content-start gap-2.5 in-[.no-js]:col-auto in-[.no-js]:row-auto in-[.no-js]:mb-5" data-i={i} data-active={i === 0 ? 'true' : 'false'}>
                     <h3>{n}</h3>
                     <p class="max-lg:text-small">{t}</p>
-                    <p class="pl-4 font-semibold text-navy shadow-[inset_3px_0_var(--color-orange)] max-lg:text-small">{h}</p>
+                    <p class="pl-4 font-semibold text-navy shadow-[inset_3px_0_var(--color-orange)] max-lg:text-small" set:html={T(h)} />
                   </article>
                 ))}
               </div>
@@ -308,8 +329,8 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
               <div class="grid">
                 {steps.map((s, i) => (
                   <article class="step col-start-1 row-start-1 grid max-w-[46ch] content-start gap-3.5 compact:gap-1.5 in-[.no-js]:col-auto in-[.no-js]:row-auto in-[.no-js]:mb-6" data-step={i} data-active={i === 0 ? 'true' : 'false'} aria-hidden={i === 0 ? 'false' : 'true'}>
-                    <h3 class="text-[length:clamp(1.625rem,1rem_+_1.8vw,2.75rem)] leading-[1.05] tracking-[-.035em] compact:text-[1.375rem]">{s.title}</h3>
-                    <p class="text-slate compact:text-small compact:leading-normal">{s.text}</p>
+                    <h3 class="text-[length:clamp(1.625rem,1rem_+_1.8vw,2.75rem)] leading-[1.05] tracking-[-.035em] compact:text-[1.375rem]" set:html={T(s.title)} />
+                    <p class="text-slate compact:text-small compact:leading-normal" set:html={T(s.text)} />
                   </article>
                 ))}
               </div>
@@ -319,7 +340,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
               <p class="mb-3.5 flex items-baseline justify-between compact:mb-2"><b class="text-body text-navy">Account 1048</b><span class="text-slate compact:hidden">Simulated. Collections queue, bucket 1–30</span></p>
               <dl class="mb-4.5 grid grid-cols-3 gap-1 compact:mb-1.5">
                 {stats.map(([dt, dd, more]) => (
-                  <div class={`rounded-md bg-mist px-3 py-2.5 compact:px-2.5 compact:py-1.5${more ? ' compact:hidden' : ''}`}><dt class="text-slate compact:text-[.8125rem]">{dt}</dt><dd class={`font-bold tracking-[-.02em] text-navy tabular-nums ${more ? 'text-body' : 'text-lead compact:text-body'}`}>{dd}</dd></div>
+                  <div class={`rounded-md bg-mist px-3 py-2.5 compact:px-2.5 compact:py-1.5${more ? ' compact:hidden' : ''}`}><dt class="text-slate compact:text-[.8125rem]">{dt}</dt><dd class={`font-bold tracking-[-.02em] text-navy tabular-nums ${more ? 'text-body' : 'text-lead compact:text-body'}`} set:html={T(dd)} /></div>
                 ))}
               </dl>
               <ol class="cc-log grid">
@@ -335,8 +356,8 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
                 </li>
                 <li class="group/li relative py-3 pl-5.5 compact:pt-2 compact:pb-1 compact:not-data-[s=now]:hidden" data-i="1">
                   <p class="mb-1.5 flex justify-between gap-3 font-bold text-navy transition-colors duration-300 group-data-[s=next]/li:text-[#64748B]">Recommendation <time class="font-medium text-slate tabular-nums">10:33</time></p>
-                  <p class="hidden text-slate group-data-[s=done]/li:block">Call after salary credit, in Tamil</p>
-                  <div class={`${ccBody} gap-1`}><p>Follow-up call after her salary credit, within permitted hours, in Tamil. Priority medium.</p><p class={ccNote}>Basis: her own request and recorded preference.</p></div>
+                  <p class="hidden text-slate group-data-[s=done]/li:block">Call after salary credit, in <span data-lang-name>Hindi</span></p>
+                  <div class={`${ccBody} gap-1`}><p>Follow-up call after her salary credit, within permitted hours, in <span data-lang-name>Hindi</span>. Priority medium.</p><p class={ccNote}>Basis: her own request and recorded preference.</p></div>
                 </li>
                 <li class="group/li relative py-3 pl-5.5 compact:pt-2 compact:pb-1 compact:not-data-[s=now]:hidden" data-i="2">
                   <p class="mb-1.5 flex justify-between gap-3 font-bold text-navy transition-colors duration-300 group-data-[s=next]/li:text-[#64748B]">Approval <time id="approve-time" class="font-medium text-slate tabular-nums">waiting</time></p>
@@ -351,11 +372,11 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
                 </li>
                 <li class="group/li relative py-3 pl-5.5 compact:pt-2 compact:pb-1 compact:not-data-[s=now]:hidden" data-i="3">
                   <p class="mb-1.5 flex justify-between gap-3 font-bold text-navy transition-colors duration-300 group-data-[s=next]/li:text-[#64748B]">Call <time class="font-medium text-slate tabular-nums">Day 8, 18:10</time></p>
-                  <p class="hidden text-slate group-data-[s=done]/li:block">Follow-up recorded, in Tamil</p>
+                  <p class="hidden text-slate group-data-[s=done]/li:block">Follow-up recorded, in <span data-lang-name>Hindi</span></p>
                   <div class={`${ccBody} gap-2`}>
-                    <p class={`${bubble} justify-self-start bg-mist`}><span lang="ta" class="mb-0.5 block font-semibold">சம்பளம் வந்த பிறகுதான் கட்ட முடியும்.</span>I can only pay after my salary comes in.</p>
-                    <p class={`${bubble} justify-self-end bg-navy text-white`}><span lang="ta" class="mb-0.5 block font-semibold">புரிகிறது. சம்பளம் வந்த பிறகு தமிழில் அழைக்கிறோம்.</span>Understood. We will call after your salary credit, in Tamil.</p>
-                    <p class={`${bubble} justify-self-start bg-mist compact:hidden`}><span lang="ta" class="mb-0.5 block font-semibold">முதல் வாரத்துக்குப் பிறகு சரி.</span>After the first week is fine.</p>
+                    <p class={`${bubble} justify-self-start bg-mist`}><span lang={her.code} class="mb-0.5 block font-semibold" data-lang-line>{her.line}</span>I can only pay after my salary comes in.</p>
+                    <p class={`${bubble} justify-self-end bg-navy text-white`}><span lang={her.code} class="mb-0.5 block font-semibold" data-lang-hello>{her.hello}</span>Understood. We will call after your salary credit, in <span data-lang-name>Hindi</span>.</p>
+                    <p class={`${bubble} justify-self-start bg-mist compact:hidden`}>After the first week is fine.</p>
                     <p class="mt-1 rounded-[10px] text-[.875rem] leading-[1.4] text-slate">No payment commitment was made on this call.</p>
                   </div>
                 </li>
@@ -400,7 +421,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
                 <div class="packet"><span class="split"></span></div>
                 <div class="reviewer"><span>Sent to an authorised reviewer</span><b>Approved</b></div>
               </div>
-              <p class="absolute inset-x-0 bottom-0 text-center text-body font-semibold text-white max-lg:text-small" id="gate-tag">Proposed action: follow-up call, Tamil</p>
+              <p class="absolute inset-x-0 bottom-0 text-center text-body font-semibold text-white max-lg:text-small" id="gate-tag">Proposed action: a follow-up call, in Hindi</p>
             </div>
           </div>
         </div>
@@ -485,7 +506,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
         <div class="wrap hub relative z-3 mt-[clamp(32px,6vh,72px)] grid grid-cols-[minmax(0,1fr)_min(42vw,540px)_minmax(0,1fr)] items-stretch gap-[clamp(12px,2vw,32px)] max-lg:grid-cols-1 max-lg:gap-4.5 max-lg:before:absolute max-lg:before:top-16 max-lg:before:bottom-6 max-lg:before:left-[calc(var(--m)_+_35.5px)] max-lg:before:w-px max-lg:before:bg-blue/30 max-lg:before:content-['']">
           <p class="hidden items-center gap-3 text-[15px] font-semibold text-navy max-lg:flex" aria-hidden="true"><i class="ml-1 size-16 flex-none rounded-full bg-navy"></i>Super Intelligence</p>
           <ul class="ports grid grid-rows-[repeat(3,1fr)] max-lg:grid-rows-none max-lg:gap-4.5">
-            {connectors.slice(0, 3).map((c) => <li class={`${port} text-right`} data-acts={c.acts ? 'yes' : 'no'}><b class="text-[length:clamp(1.0625rem,.9rem_+_.4vw,1.3125rem)] leading-[1.2] tracking-[-.02em] text-navy">{c.name}</b><span>{c.reads}</span><em class={portEm}>{c.acts ? `Acts: ${c.acts.charAt(0).toLowerCase() + c.acts.slice(1)}` : 'Stays read-only'}</em></li>)}
+            {connectors.slice(0, 3).map((c) => <li class={`${port} text-right`} data-acts={c.acts ? 'yes' : 'no'}><b class="text-[length:clamp(1.0625rem,.9rem_+_.4vw,1.3125rem)] leading-[1.2] tracking-[-.02em] text-navy">{c.name}</b><span set:html={T(c.reads)} /><em class={portEm}>{c.acts ? `Acts: ${c.acts.charAt(0).toLowerCase() + c.acts.slice(1)}` : 'Stays read-only'}</em></li>)}
           </ul>
           <svg class="block h-auto w-full overflow-visible max-lg:hidden" viewBox="0 0 600 600" aria-hidden="true">
             <g class="wires"></g>
@@ -494,7 +515,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
             <text x="300" y="318" text-anchor="middle" class="core-t">Intelligence</text>
           </svg>
           <ul class="ports grid grid-rows-[repeat(3,1fr)] max-lg:grid-rows-none max-lg:gap-4.5">
-            {connectors.slice(3).map((c) => <li class={port} data-acts={c.acts ? 'yes' : 'no'}><b class="text-[length:clamp(1.0625rem,.9rem_+_.4vw,1.3125rem)] leading-[1.2] tracking-[-.02em] text-navy">{c.name}</b><span>{c.reads}</span><em class={portEm}>{c.acts ? `Acts: ${c.acts.charAt(0).toLowerCase() + c.acts.slice(1)}` : 'Stays read-only'}</em></li>)}
+            {connectors.slice(3).map((c) => <li class={port} data-acts={c.acts ? 'yes' : 'no'}><b class="text-[length:clamp(1.0625rem,.9rem_+_.4vw,1.3125rem)] leading-[1.2] tracking-[-.02em] text-navy">{c.name}</b><span set:html={T(c.reads)} /><em class={portEm}>{c.acts ? `Acts: ${c.acts.charAt(0).toLowerCase() + c.acts.slice(1)}` : 'Stays read-only'}</em></li>)}
           </ul>
         </div>
         <p class="wrap fade relative z-3 mt-[clamp(28px,5vh,56px)] text-center text-small text-slate">Each connector is validated against your environment before use. No vendor is listed as supported until it has been checked.</p>
@@ -512,7 +533,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
                 <h3 class="text-[length:clamp(2.75rem,1rem_+_5vw,6.5rem)] leading-[.95] tracking-[-.05em] text-on-navy/22 transition-colors duration-[450ms] ease-out group-data-[active=true]/m:text-white motion-reduce:transition-none">{o.name}</h3>
                 <div class="grid gap-2.5 opacity-38 transition-opacity duration-[450ms] ease-out group-data-[active=true]/m:opacity-100 motion-reduce:transition-none">
                   <ul class="flex flex-wrap gap-2">{o.counts.map((c) => <li class="rounded-full bg-on-navy/10 px-3 py-1.5 text-small font-semibold text-white group-data-[active=true]/m:first:bg-orange group-data-[active=true]/m:first:text-navy">{c}</li>)}</ul>
-                  <p class="max-w-[34ch] text-lead leading-[1.4] text-white">{o.her}</p>
+                  <p class="max-w-[34ch] text-lead leading-[1.4] text-white" set:html={T(o.her)} />
                 </div>
               </li>
             ))}
@@ -562,7 +583,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
 
     <footer class="foot relative flow-root bg-navy pb-10 text-on-navy">
       <div class="wrap relative z-3 grid justify-items-start gap-5.5 pt-[clamp(72px,12vh,140px)]">
-        <p class="fade max-w-[28ch] text-[length:clamp(1.5rem,.9rem_+_1.6vw,2.5rem)] leading-[1.15] font-semibold tracking-[-.03em] text-white">Account 1048 got one call, in Tamil, after payday. Which account is next?</p>
+        <p class="fade max-w-[28ch] text-[length:clamp(1.5rem,.9rem_+_1.6vw,2.5rem)] leading-[1.15] font-semibold tracking-[-.03em] text-white">Account 1048 got one call, in <span data-lang-name>Hindi</span>, after payday. Which account is next?</p>
         <a class="btn fade" href="#pilot">Book a demonstration</a>
         <p class="fade text-body font-semibold text-dim">Intelligent. Compliant. Sovereign. Scalable.</p>
       </div>

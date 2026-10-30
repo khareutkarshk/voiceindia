@@ -31,8 +31,8 @@
   --color-mint: #7BE0A0;     /* green that passes contrast on navy */
   --color-ring: #9AA8C4;     /* loop stations not reached yet */
 
-  --font-sans: "Jakarta", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
-  --font-tamil: "Anek Tamil", "Jakarta", ui-sans-serif, system-ui, sans-serif;
+  /* Latin is Jakarta; every Indian script falls through to Anek, one family drawn for all of them */
+  --font-sans: "Jakarta", "Anek", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
 
   --text-*: initial;
   --text-small: clamp(.9375rem, .9rem + .1vw, 1rem);
@@ -65,9 +65,16 @@
   @font-face{font-family:"Jakarta";font-style:normal;font-display:swap;font-weight:200 800;
     src:url(/fonts/jakarta-ext.woff2) format("woff2-variations"),url(/fonts/jakarta-ext.woff2) format("woff2");
     unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1E9F,U+20A0-20AB,U+20AD-20C0,U+2113}
-  @font-face{font-family:"Anek Tamil";font-style:normal;font-display:swap;font-weight:100 800;font-stretch:75% 125%;
-    src:url(/fonts/anek-tamil.woff2) format("woff2-variations"),url(/fonts/anek-tamil.woff2) format("woff2");
-    unicode-range:U+0964-0965,U+0B82-0BFA,U+200C-200D,U+20B9,U+25CC}
+  /* Anek, by Ek Type: one face per script, each cut down to the glyphs the page uses (wght 500 to 700) */
+  @font-face{font-family:"Anek";font-style:normal;font-display:swap;font-weight:500 700;src:url(/fonts/anek-devanagari.woff2) format("woff2");unicode-range:U+0900-097F,U+1CD0-1CF9,U+20A8,U+20F0,U+A830-A839,U+A8E0-A8FF}
+  @font-face{font-family:"Anek";font-style:normal;font-display:swap;font-weight:500 700;src:url(/fonts/anek-bangla.woff2) format("woff2");unicode-range:U+0964-0965,U+0980-09FE}
+  @font-face{font-family:"Anek";font-style:normal;font-display:swap;font-weight:500 700;src:url(/fonts/anek-gujarati.woff2) format("woff2");unicode-range:U+0A80-0AFF}
+  @font-face{font-family:"Anek";font-style:normal;font-display:swap;font-weight:500 700;src:url(/fonts/anek-gurmukhi.woff2) format("woff2");unicode-range:U+0A01-0A76}
+  @font-face{font-family:"Anek";font-style:normal;font-display:swap;font-weight:500 700;src:url(/fonts/anek-kannada.woff2) format("woff2");unicode-range:U+0C80-0CF3}
+  @font-face{font-family:"Anek";font-style:normal;font-display:swap;font-weight:500 700;src:url(/fonts/anek-malayalam.woff2) format("woff2");unicode-range:U+0D00-0D7F}
+  @font-face{font-family:"Anek";font-style:normal;font-display:swap;font-weight:500 700;src:url(/fonts/anek-odia.woff2) format("woff2");unicode-range:U+0B01-0B77}
+  @font-face{font-family:"Anek";font-style:normal;font-display:swap;font-weight:500 700;src:url(/fonts/anek-telugu.woff2) format("woff2");unicode-range:U+0C00-0C7F}
+  @font-face{font-family:"Anek";font-style:normal;font-display:swap;font-weight:500 700;src:url(/fonts/anek-tamil.woff2) format("woff2");unicode-range:U+0B82-0BFA}
 
   :root{--m:20px;--nav:78px}
   @media (min-width:760px){:root{--m:40px}}
@@ -88,7 +95,6 @@
   button{cursor:pointer}
   :focus-visible{outline:2px solid var(--color-orange);outline-offset:3px}
   ::selection{background:var(--color-navy);color:var(--color-white)}
-  [lang="ta"]{font-family:var(--font-tamil)}
 }
 
 @layer components {

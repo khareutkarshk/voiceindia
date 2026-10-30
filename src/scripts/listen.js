@@ -1,6 +1,6 @@
 // Her line, out loud. Off until asked for. The page renders the button only when the recording exists.
 // Under it a tanpura-like drone, made here rather than loaded: four plucked strings, Pa Sa Sa Sa, very quiet.
-// level() is how loud she is right now, for the flour to move with.
+// level() is how loud she is right now, for her voice in the particles to move with.
 
 const SRC = '/audio/her-line.mp3';
 const KEY = 'si-listen';
@@ -50,7 +50,7 @@ export function createListen(button, { onStart } = {}) {
     analyser.connect(ctx.destination);
     drone = tanpura();
     onStart?.();
-    // she speaks as the flour gathers, the same moment the subtitle starts
+    // she speaks as her words rise out of her voice
     voice = ctx.createBufferSource();
     voice.buffer = buf;
     voice.connect(analyser);

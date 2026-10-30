@@ -1,9 +1,10 @@
 // The brand wave, drawn as particles. One WebGL draw call; every dot is placed in the vertex shader.
 // Threads carry the brand's meanings: navy = foundation, blue = intelligence, orange = action, green = trust.
-// Each chapter declares a shape (a kolam, a wave, a word, a walled field, the logo). Scrolling mixes the dots
+// Each chapter declares a shape (her line, a wave, a word, a walled field, the logo). Scrolling mixes the dots
 // from one shape to the next; the page's own scroll (smoothed by Lenis) is the only clock for that.
+// The one other clock is her line changing script in the hero, which runs on its own.
 
-import { kolam } from './kolam.js';
+import { LANGS, langOf } from './langs.js';
 
 const TAU = Math.PI * 2;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -17,7 +18,8 @@ attribute vec4 aSeed;   // thread, u, r1, r2
 attribute vec4 aSeed2;  // gaussian, strand, r3, size
 attribute vec2 aFrom;
 attribute vec2 aTo;
-attribute float aShard; // which of the five pieces of the kolam this grain breaks away with
+attribute vec2 aAlt;    // her line in the script it is leaving (hero only)
+attribute float aShard; // which of the five pieces of her line this grain breaks away with; 5 is her voice
 uniform vec2 uRes;
 uniform float uDpr, uTime, uMix, uApprove;
 uniform float uModeA, uModeB;
@@ -29,16 +31,18 @@ uniform float uFar;
 uniform float uSel;     // the engine whose thread is lit     // travel distance (in screens) beyond which shapes dissolve instead of fly
 uniform vec3 uBand;      // viewport y of up to three ground edges
 uniform vec4 uBandTone;  // tone (0 light, 1 navy) of the ground above, between and below them
-uniform vec4 uKol;       // the kolam's opening: voice gathers the flour, its loudness, the pulli settle, the line is drawn
-uniform vec2 uHead;      // the drawing hand, in the kolam's stage
-uniform vec4 uPc[5];     // each broken piece: where it landed (x, y) and its centre in the kolam (z, w), px
+uniform vec4 uIntro;     // her line: risen out of her voice, how loud she is, how far into the next script, voice shown
+uniform vec4 uPc[5];     // each broken piece: where it landed (x, y) and its centre in her line (z, w), px
 uniform float uPr[5];    // and the turn it landed with
 uniform float uJoin;     // 0 broken, 1 held back together by the visitor
-uniform vec3 uHome;      // where the joined kolam forms, in the pieces' stage (x, y), and how much larger than its pieces (z)
+uniform vec3 uHome;      // where the joined line forms, in the pieces' stage (x, y), and its scale against the pieces (z)
 varying vec4 vCol;
 
-// in the kolam, blue and orange threads make the one line, part of the navy thread makes the pulli, the rest is loose flour
-float kolRole() { return aSeed.x > .5 && aSeed.x < 2.5 ? 2. : aSeed.x < .5 && aSeed2.z < .55 ? 1. : 0.; }
+// her voice: one thin band of grains, moving with how loud she is; still at both ends
+float voiceY(float x, float x0, float x1, float amp) {
+  float u = clamp((x - x0) / max(1., x1 - x0), 0., 1.);
+  return (sin(u * 13. + uTime * 2.1) * .6 + sin(u * 29. - uTime * 3.3) * .25) * 46. * amp * sin(3.14159 * u);
+}
 
 vec3 threadCol(float k, float dark) {
   vec3 l = k < .5 ? vec3(.027,.106,.286) : k < 1.5 ? vec3(.153,.298,.608) : k < 2.5 ? vec3(1.,.42,.102) : vec3(.086,.639,.29);
@@ -47,76 +51,51 @@ vec3 threadCol(float k, float dark) {
 }
 
 // x, y, alpha in viewport px for one shape
-vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts) {
+vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
   float k = aSeed.x, u = aSeed.y, r1 = aSeed.z, r2 = aSeed.w;
   float g = aSeed2.x, st = aSeed2.y, r3 = aSeed2.z;
   float t = uTime, w = R.z, h = R.w;
   if (mode > 4.5) {
-    // the kolam in five pieces, each kept by one system; pts = this grain's place in its piece.
-    // The loose flour hangs in the air of the screen, not the page, so the pieces scroll past it.
-    float role = kolRole();
-    if (role < .5) {
-      vec2 b0 = vec2(r1, r2) * uRes;
-      vec2 dust = b0 + vec2(sin(b0.y * .0052 + t * .11 + r3 * 6.), cos(b0.x * .0047 - t * .09 + r1 * 6.)) * 22.;
-      return vec3(dust, (.16 + .3 * r1) * .5 * step(.5, fract(r2 * 7.)));
-    }
+    // her line in five pieces, each kept by one system; pts = this grain's place in its piece.
+    // Her voice is not carried down: it fades where it was (see main)
+    if (aShard > 4.5) return vec3(R.xy + vec2(r1, r2) * vec2(w, h), 0.);
     vec2 p = pts;
     if (uJoin > 0.) {
-      // held together: undo the piece's landing, so it goes home to its place in one kolam at the stage's centre
+      // held together: undo the piece's landing, so it goes home to its place in her line, whole again
       vec4 pc = uPc[0]; float ro = uPr[0];
       for (int k = 1; k < 5; k++) if (abs(aShard - float(k)) < .5) { pc = uPc[k]; ro = uPr[k]; }
       vec2 d = pts - pc.xy;
       float cs = cos(ro), sn = sin(ro);
       float jj = clamp(uJoin * 1.24 - aShard * .06, 0., 1.);
       jj = jj * jj * (3. - 2. * jj);
-      // it grows as it closes, so the whole ends larger than the pieces it was made from
       vec2 home = uHome.xy + (vec2(d.x * cs + d.y * sn, -d.x * sn + d.y * cs) + pc.zw) * mix(1., uHome.z, jj);
       p = mix(p, home, jj);
     }
     p += vec2(sin(t * .6 + r1 * 6.2832), cos(t * .5 + r2 * 6.2832)) * .5;
-    return vec3(R.xy + p, role > 1.5 ? .72 + .28 * r2 : .62 + .38 * r1);
+    return vec3(R.xy + p, .72 + .28 * r2);
   }
   if (mode > 3.5) {
-    // p1 = kolam centre x, y, radius, pulli spacing (px in the stage); pts = this dot's place in the kolam
-    float role = kolRole();
-    // loose flour hanging in still air, drifting on a slow current
-    vec2 b0 = vec2(r1, r2) * vec2(w, h);
-    vec2 dust = b0 + vec2(sin(b0.y * .0052 + t * .11 + r3 * 6.) + .5 * sin(t * .07 + r2 * 30.), cos(b0.x * .0047 - t * .09 + r1 * 6.) + .5 * cos(t * .05 + r1 * 30.)) * 22.;
-    // her voice: the flour gathers into one band through the kolam's centre and moves with what she says.
-    // It starts just short of the kolam and runs off the far edge, so it never crosses the words beside it.
-    float env = sin(3.14159 * u);
-    float amp = .12 + uKol.y;
-    float x0 = max(0., p1.x - 1.3 * p1.z);
-    vec2 band = vec2(mix(x0, w, u), p1.y + (st - 3.) * 1.7 + g * 1.4
-      + (sin(u * 13. + t * 2.1 + r3 * .3) * .06 + sin(u * 29. - t * 3.3) * .025) * h * amp * env);
-    float ge = clamp(uKol.x * 1.7 - r3 * .7, 0., 1.);
-    ge = ge * ge * (3. - 2. * ge);
-    vec2 p = mix(dust, band, ge);
-    float a = mix(.16 + .3 * r1, .8 * (x0 > 0. ? smoothstep(0., .14, u) : 1.), ge);
-    float back = smoothstep(0., 1., uKol.z);
-    if (role > .5 && role < 1.5) {
-      // the pulli settle from the centre outwards, slowing as they land
-      float dc = length(pts - p1.xy) / max(p1.z, 1.);
-      float se = clamp(uKol.z * 1.8 - dc * .8, 0., 1.);
-      se = 1. - pow(1. - se, 3.);
-      p = mix(p, pts, se);
-      a = mix(a, .62 + .38 * r1, se);
-    } else {
-      // loose flour settles back into the air, and thins once the line is done so the kolam carries the screen
-      p = mix(p, dust, back);
-      // half the loose flour settles out of sight once the kolam is made, so the air stays clear around it
-      a = mix(a, (.16 + .3 * r1) * (1. - .45 * uKol.w) * mix(1., step(.5, fract(r2 * 7.)), uKol.w), back);
+    // p1 = her line's centre (x, y), its half width, the voice's baseline; p2 = where the voice starts and ends
+    // she speaks while the line changes script, so the voice swells with every change
+    float amp = .1 + uIntro.y + .5 * sin(3.14159 * uIntro.z);
+    float vy = p1.w + (st - 3.) * .75 + g * .55;
+    if (aShard > 4.5) {
+      float x = mix(p2.x, p2.y, u);
+      return vec3(R.xy + vec2(x, vy + voiceY(x, p2.x, p2.y, amp)), (.22 + .36 * r1) * uIntro.w * smoothstep(0., .06, u));
     }
-    if (role > 1.5) {
-      // the line: flour swirls in to the hand just before it is laid down behind it
-      vec2 hand = uHead + vec2(cos(r1 * 6.2832), sin(r1 * 6.2832)) * (3. + 9. * r2);
-      float k = clamp((uKol.w - u) * 45. + 1., 0., 2.);
-      if (k < 1.) { p = mix(p, hand, k * k); a = mix(a, .9, k); }
-      else { float f = 1. - pow(2. - k, 3.); p = mix(hand, pts, f); a = .72 + .28 * r2; }
-    }
-    // once it is made, the kolam only breathes
-    p += vec2(sin(t * .6 + r1 * 6.2832), cos(t * .5 + r2 * 6.2832)) * .5 * uKol.z;
-    return vec3(R.xy + p, a);
+    float xn = clamp((pts.x - p1.x + p1.z) / (2. * p1.z), 0., 1.);
+    // the next script arrives from left to right, the way the words are said, each grain lifting as it goes
+    float m = clamp(uIntro.z * 1.6 - xn * .6, 0., 1.);
+    m = m * m * (3. - 2. * m);
+    vec2 p = mix(alt, pts, m);
+    p += vec2((r2 - .5) * 10., -6. - 16. * r1) * sin(m * 3.14159);
+    // before she has spoken every grain of the line lies in her voice; the words rise out of it in the order said
+    float ga = clamp(uIntro.x * 1.5 - xn * .5, 0., 1.);
+    ga = 1. - pow(1. - ga, 3.);
+    p = mix(vec2(p.x, vy + voiceY(p.x, p2.x, p2.y, amp)), p, ga);
+    // once it is said, the line only breathes
+    p += vec2(sin(t * .6 + r1 * 6.2832), cos(t * .5 + r2 * 6.2832)) * .45;
+    return vec3(R.xy + p, mix((.3 + .4 * r1) * uIntro.w, .74 + .26 * r2, ga));
   }
   if (mode > 0.5 && mode < 1.5) {
     vec2 j = vec2(sin(t * 1.1 + r1 * 40.), cos(t * .9 + r2 * 40.)) * p1.w;
@@ -215,57 +194,57 @@ vec3 colour(vec4 C, vec3 col, float tone) {
 void main() {
   // dots leave in order along the wave (left first), so a shape peels away as a stream, not a cloud
   bool words = uModeA > .5 && uModeA < 1.5 && uModeB > .5 && uModeB < 1.5;
-  // the kolam breaking: the pieces come away one after another, each as a body of grains
+  // her line breaking: the pieces come away one after another, each as a body of grains
   bool shatter = uModeA > 3.5 && uModeA < 4.5 && uModeB > 4.5;
   float e = words ? clamp(uMix * 1.35 - aSeed2.z * .35, 0., 1.)
     : shatter ? clamp(uMix * 1.48 - aShard * .12, 0., 1.)
     : clamp(uMix * 1.7 - (aSeed.y * .55 + aSeed2.z * .15), 0., 1.);
   e = e < .5 ? 4. * e * e * e : 1. - pow(-2. * e + 2., 3.) / 2.;
-  vec3 A = shape(uModeA, uRectA, uP1A, uP2A, aFrom);
-  vec3 B = uMix > 0. ? shape(uModeB, uRectB, uP1B, uP2B, aTo) : A;
+  vec3 A = shape(uModeA, uRectA, uP1A, uP2A, aFrom, aAlt);
+  vec3 B = uMix > 0. ? shape(uModeB, uRectB, uP1B, uP2B, aTo, aAlt) : A;
   vec2 dir = B.xy - A.xy;
   // far apart: dissolve out and back in rather than fly across the words between
   float far = smoothstep(uFar, uFar + .5, length(dir) / uRes.y);
-  // the kolam never flies across the words below it: it unwinds where it lies, line first, and the wave of
-  // five systems grows in its place in the same order
+  // her line never flies across the words below it to an unrelated shape: it dissolves where it lies
   // (except when it breaks: then each piece is carried, whole, to the system that keeps it. Where the
   // layout is stacked the words lie between, so there the pieces fade out and re-form in place: p1.x of the state)
   if (uModeA > 3.5 || uModeB > 3.5) far = shatter ? uP1B.x : 1.;
   vec2 p = mix(mix(A.xy, B.xy, e), e < .5 ? A.xy : B.xy, far);
   float fade = mix(1., abs(1. - 2. * e), far);
-  // in the air the flour thins, and gathers again as it lands
+  // in the air a piece thins, and gathers again as it lands; her voice stays where it was and fades
   if (shatter) fade *= 1. - .25 * sin(e * 3.14159);
+  if (shatter && aShard > 4.5) { p = A.xy; fade = 1. - smoothstep(0., .3, e); }
 
   vec2 mid = (A.xy + B.xy) * .5;
   vec2 cur = vec2(sin(mid.y * .0045 + uTime * .3), cos(mid.x * .004 - uTime * .25));
   // a piece is carried whole, so its current is read at the piece, not at each grain
   if (shatter) cur = vec2(sin(aShard * 1.7 + uTime * .3), cos(aShard * 2.3 - uTime * .25));
   p += cur * sin(e * 3.14159) * min(42., length(dir) * .1) * (1. - far);
-  // flour lifts a little as it lets go, and settles a little as it lands
+  // a piece lifts a little as it lets go, and settles a little as it lands
   if (uModeA > 3.5 || uModeB > 3.5) p.y += (e < .5 ? -1. : 1.) * sin(e * 3.14159) * 16.;
   if (words) {
     float sw = sin(e * 3.14159);
     p += vec2(sin(aSeed.z * 31. + uTime * .7), cos(aSeed.w * 27. + uTime * .6)) * sw * 26.;
     fade *= 1. - .7 * sw;
   }
-  float role = kolRole();
-  float kolW = mix(uModeA > 3.5 ? 1. : 0., uModeB > 3.5 ? 1. : 0., e);
-  float stiff = role > 1.5 ? .12 : role > .5 ? .3 : 1.;
+  float txt = aShard < 4.5 ? 1. : 0.;
+  float lineW = mix(uModeA > 3.5 ? 1. : 0., uModeB > 3.5 ? 1. : 0., e);
+  float stiff = txt > .5 ? .3 : 1.;
   float push = mix(uModeA > 3.5 ? 1. : uModeA > 1.5 ? 0. : uModeA > .5 ? .3 : 1., uModeB > 3.5 ? 1. : uModeB > 1.5 ? 0. : uModeB > .5 ? .3 : 1., e) * uMouse.z;
   float wiped = 0.;
 #ifdef TRAIL
-  // a fingertip through flour: it parts the grains, and they settle back as the trail fades
-  if (kolW > 0.) {
+  // a fingertip through her line: it parts the grains, and they settle back as the trail fades
+  if (lineW > 0.) {
     vec2 uv = vec2(p.x / uRes.x, 1. - p.y / uRes.y), d = vec2(1. / 160., 1. / 100.);
     float c0 = texture2D(uTrail, uv).r;
     vec2 gr = vec2(texture2D(uTrail, uv + vec2(d.x, 0.)).r - texture2D(uTrail, uv - vec2(d.x, 0.)).r,
                    texture2D(uTrail, uv - vec2(0., d.y)).r - texture2D(uTrail, uv + vec2(0., d.y)).r);
-    p -= gr * 80. * stiff * kolW;
-    wiped = c0 * kolW * (role > 1.5 ? .15 : .55);
-    push *= 1. - kolW;
+    p -= gr * 80. * stiff * lineW;
+    wiped = c0 * lineW * .3;
+    push *= 1. - lineW;
   }
 #endif
-  push *= mix(1., stiff, kolW);
+  push *= mix(1., stiff, lineW);
   vec2 m = p - uMouse.xy; float md = length(m);
   if (md < 130. && push > 0.) p += m / max(md, .001) * pow(1. - md / 130., 2.) * 46. * push;
   float tone = toneAt(p.y);
@@ -273,28 +252,25 @@ void main() {
   float lit = abs(floor(aSeed.w * 6.) - uSel) < .5 ? 1. : 0.;
   if (uModeA > 2.5 && uModeA < 3.5) { cA = lit > .5 ? threadCol(2., tone) : cA; A.z *= lit > .5 ? 1. : .38; }
   if (uModeB > 2.5 && uModeB < 3.5) { cB = lit > .5 ? threadCol(2., tone) : cB; B.z *= lit > .5 ? 1. : .38; }
-  // the kolam is rice flour: the pulli white, the line a cooler ice. One strand is orange, the stretch of
-  // line that breaks away with her words (piece 4, the call recordings), so the eye can follow it down
-  // Rice flour reads as dark indigo on the pale paper chapter and soft white on navy.
-  vec3 flour = mix(vec3(.027, .106, .286), vec3(.93, .95, 1.), tone);
-  vec3 ice = mix(vec3(.153, .298, .608), vec3(.78, .85, .98), tone);
+  // her line is ink: white on navy, navy on the pale chapter. The word for salary is orange (piece 4), so the
+  // eye can follow it down to the system that knows when her salary lands. Her voice is a cooler ice.
+  vec3 ink = mix(vec3(.027, .106, .286), vec3(.93, .95, 1.), tone);
+  vec3 ice = mix(vec3(.153, .298, .608), vec3(.6, .72, .95), tone);
   vec3 orange = mix(vec3(.76, .255, .06), threadCol(2., 1.), tone);
-  vec3 lineCol = abs(aShard - 4.) < .5 ? orange : ice;
-  if (uModeA > 3.5) cA = role > 1.5 ? lineCol : flour;
-  if (uModeB > 3.5) cB = role > 1.5 ? lineCol : flour;
+  vec3 grain = txt < .5 ? ice : abs(aShard - 4.) < .5 ? orange : ink;
+  if (uModeA > 3.5) cA = grain;
+  if (uModeB > 3.5) cB = grain;
   bool hyb = floor(aSeed.w * 3.) > 1.5 && aSeed2.z >= .16;
   if (uModeA > 1.5 && uModeA < 2.5 && hyb) cA = threadCol(3., tone);
   if (uModeB > 1.5 && uModeB < 2.5 && hyb) cB = threadCol(3., tone);
   vec3 inkC = mix(vec3(.027, .106, .286), vec3(.93, .95, 1.), tone);
-  // a piece of the kolam keeps its colours in flight; other shapes pass through the ink of the ground
+  // a piece of her line keeps its colours in flight; other shapes pass through the ink of the ground
   vec3 cm = shatter ? mix(cA, cB, e) : e < .5 ? mix(cA, inkC, smoothstep(0., .5, e)) : mix(inkC, cB, smoothstep(.5, 1., e));
   vCol = vec4(uMix > 0. ? cm : cA, mix(A.z, B.z, e) * fade * (1. - wiped));
   vec2 q = p / uRes * 2. - 1.;
   gl_Position = vec4(q.x, -q.y, 0., 1.);
-  // in the kolam a few grains of flour float close to the eye, larger and fainter
-  float near = role < .5 && aSeed2.x > 1.9 ? 2.4 : 1.;
-  if (near > 1.) vCol.a *= mix(1., .45, kolW);
-  gl_PointSize = mix(uCA.w > 0. ? uCA.w : aSeed2.w, uCB.w > 0. ? uCB.w : aSeed2.w, e) * mix(1., near, kolW) * uDpr;
+  // her line is engraved, so its grains are finer than the rest
+  gl_PointSize = mix(uCA.w > 0. ? uCA.w : aSeed2.w, uCB.w > 0. ? uCB.w : aSeed2.w, e) * mix(1., .78, lineW * txt) * uDpr;
 }`;
 
 const FS = `
@@ -347,7 +323,7 @@ export function createWave(canvas, { reduced = false } = {}) {
   gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
   const narrow = innerWidth < 760;
-  // enough grains that the kolam's line reads as one line of flour, not a dotted one
+  // enough grains that her line reads as engraved type, not a dotted one
   const N = narrow ? 18000 : innerWidth < 1200 ? 30000 : 42000;
 
   // seeds
@@ -372,12 +348,12 @@ export function createWave(canvas, { reduced = false } = {}) {
   };
   attr('aSeed', S1, 4);
   attr('aSeed2', S2, 4);
-  const locFrom = gl.getAttribLocation(prog, 'aFrom'), locTo = gl.getAttribLocation(prog, 'aTo');
-  gl.enableVertexAttribArray(locFrom); gl.enableVertexAttribArray(locTo);
+  const locFrom = gl.getAttribLocation(prog, 'aFrom'), locTo = gl.getAttribLocation(prog, 'aTo'), locAlt = gl.getAttribLocation(prog, 'aAlt');
+  gl.enableVertexAttribArray(locFrom); gl.enableVertexAttribArray(locTo); gl.enableVertexAttribArray(locAlt);
   const zero = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, zero); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(N * 2), gl.STATIC_DRAW);
   const U_ = {};
-  for (const n of ['uRes', 'uDpr', 'uTime', 'uMix', 'uApprove', 'uModeA', 'uModeB', 'uRectA', 'uRectB', 'uP1A', 'uP1B', 'uP2A', 'uP2B', 'uColA', 'uColB', 'uMouse', 'uBand', 'uBandTone', 'uCA', 'uCB', 'uFar', 'uSel', 'uKol', 'uHead', 'uTrail', 'uPc', 'uPr', 'uJoin', 'uHome']) U_[n] = gl.getUniformLocation(prog, n);
+  for (const n of ['uRes', 'uDpr', 'uTime', 'uMix', 'uApprove', 'uModeA', 'uModeB', 'uRectA', 'uRectB', 'uP1A', 'uP1B', 'uP2A', 'uP2B', 'uColA', 'uColB', 'uMouse', 'uBand', 'uBandTone', 'uCA', 'uCB', 'uFar', 'uSel', 'uIntro', 'uTrail', 'uPc', 'uPr', 'uJoin', 'uHome']) U_[n] = gl.getUniformLocation(prog, n);
 
   // ---------- point shapes: a word or the logo, sampled to exactly N targets ----------
   const scratch = document.createElement('canvas');
@@ -436,10 +412,14 @@ export function createWave(canvas, { reduced = false } = {}) {
     }
     return out;
   }
+  // a word in an Indian script is set in Anek; '{self}' and '{hello}' are her language's own name and greeting
+  const INDIC = /[\u0900-\u0DFF]/;
+  const say = (word) => (word === '{self}' ? langOf(lang).self : word === '{hello}' ? langOf(lang).hello : word);
   function wordShape(word, w, h) {
-    const tamil = /[஀-௿]/.test(word);
-    const family = tamil ? '"Anek Tamil"' : 'Jakarta';
-    const weight = tamil ? 700 : 800;
+    word = say(word);
+    const indic = INDIC.test(word);
+    const family = indic ? 'Anek' : 'Jakarta';
+    const weight = indic ? 700 : 800;
     return sample(w, h, (c, W, H) => {
       c.font = `${weight} 200px ${family}`;
       const m = c.measureText(word);
@@ -462,81 +442,127 @@ export function createWave(canvas, { reduced = false } = {}) {
     }, (r, g, b) => (r > 180 && g < 190 && b < 120 ? 1 : g > r + 40 && g > b ? 2 : 0));
   }
 
-  // ---------- the kolam ----------
-  // the line goes to the blue and orange threads, in order along it, so it unthreads into the wave the same way;
-  // the pulli are small hand-dropped heaps of the navy thread, none quite round
-  const KOL = kolam({ rows: narrow ? 5 : 7, seed: 3, wall: 0.2 });
-  const KN = KOL.path.length / 3;
-  const kext = ((KOL.rows - 1) / 2) * Math.SQRT2 + 0.56;
-  // the hand slows on the curves: time along the line, from how sharply each step turns
-  const pace = new Float32Array(KN + 1);
-  for (let i = 0; i < KN; i++) pace[i + 1] = pace[i] + 1 + Math.min(4, KOL.path[i * 3 + 2] * 60);
-  for (let i = 0; i <= KN; i++) pace[i] /= pace[KN];
-  const drawAt = (tau) => {
-    if (tau <= 0) return 0; if (tau >= 1) return 1;
-    let lo = 0, hi = KN;
-    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (pace[m] < tau) lo = m; else hi = m; }
-    return (lo + (tau - pace[lo]) / Math.max(1e-6, pace[hi] - pace[lo])) / KN;
-  };
-  const pathAt = (u) => {
-    const f = ((u % 1) + 1) % 1 * KN, i = Math.floor(f) % KN, j = (i + 1) % KN, t = f - Math.floor(f);
-    return [KOL.path[i * 3] + (KOL.path[j * 3] - KOL.path[i * 3]) * t, KOL.path[i * 3 + 1] + (KOL.path[j * 3 + 1] - KOL.path[i * 3 + 1]) * t];
-  };
-  let hs = 5;
-  const hr = () => ((hs = (hs * 16807) % 2147483647) - 1) / 2147483646;
-  const HEAPS = KOL.dots.map(([x, y]) => ({ x: x + (hr() - 0.5) * 0.05, y: y + (hr() - 0.5) * 0.05, ph: hr() * TAU, ph2: hr() * TAU, sq: 0.92 + hr() * 0.16 }));
-  const isLine = (i) => K[i] === 1 || K[i] === 2, isPulli = (i) => K[i] === 0 && S2[i * 4 + 2] < 0.55;
-  const heapOf = (i) => Math.floor(S1[i * 4 + 2] * HEAPS.length) % HEAPS.length;
-  // every grain's place round the kolam's centre at scale sc, in px; loose flour is left at 0
-  function kolamLocal(sc) {
-    const out = new Float32Array(N * 2);
-    for (let i = 0; i < N; i++) {
-      if (isLine(i)) {
-        const u = U[i], [x, y] = pathAt(u), [x2, y2] = pathAt(u + 1 / KN);
-        let nx = -(y2 - y), ny = x2 - x; const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
-        // a hand-drawn line wanders a little and is never one even width
-        const wob = Math.sin(u * TAU * 9 + 1.3) * 0.7 + Math.sin(u * TAU * 23 + 0.4) * 0.35;
-        const off = wob + S2[i * 4] * (0.75 + 0.35 * Math.sin(u * TAU * 5));
-        out[i * 2] = x * sc + nx * off; out[i * 2 + 1] = y * sc + ny * off;
-      } else if (isPulli(i)) {
-        const hp = HEAPS[heapOf(i)], a = J[i * 3] * TAU;
-        const rad = sc * 0.05 * Math.sqrt(-2 * Math.log(Math.max(0.06, J[i * 3 + 1]))) * (1 + 0.08 * Math.sin(3 * a + hp.ph) + 0.05 * Math.sin(5 * a + hp.ph2));
-        out[i * 2] = hp.x * sc + Math.cos(a) * rad * hp.sq; out[i * 2 + 1] = hp.y * sc + Math.sin(a) * rad / hp.sq;
+  // ---------- her line, in every script ----------
+  // Most grains carry her line, the rest her voice (aShard 5). A grain of the line keeps one piece of it in
+  // every script, so when the line breaks the same grains always go to the same system: piece 4 is the word
+  // for salary, pieces 0 to 3 are the rest of the line cut into equal shares from left to right.
+  let lang = LANGS[0].code, prev = lang, morph0 = -1e9;
+  const MORPH = 1100;
+  const SH = new Float32Array(N);
+  for (let i = 0; i < N; i++) SH[i] = S2[i * 4 + 2] > 0.72 ? 5 : J[i * 3] < 0.3 ? 4 : Math.floor(J[i * 3 + 1] * 4);
+  attr('aShard', SH, 1);
+  const CUT = 5, ROT = [-0.05, 0.04, -0.03, 0.05, -0.04];
+  const pieceGrains = Array.from({ length: CUT }, () => []);
+  for (const i of order) if (SH[i] < CUT) pieceGrains[SH[i]].push(i);
+  // engraved: the ink is laid in fine horizontal rules with a clean contour, like the print on a note
+  const ROW = 3.1, STEP = 1.9, EDGE = 1.6;
+  // her line set in the box (w by h px), and every grain's place in it; `pieces` are the five pieces' centres and reach
+  function sampleLine(L, w, h) {
+    w = Math.max(2, Math.round(w)); h = Math.max(2, Math.round(h));
+    scratch.width = w; scratch.height = h;
+    sx.clearRect(0, 0, w, h);
+    const font = (px) => `600 ${px}px Anek, Jakarta, sans-serif`;
+    sx.font = font(100);
+    const m = sx.measureText(L.line), mh = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+    const size = Math.min((100 * w * 0.98) / m.width, (100 * h * 0.92) / mh);
+    sx.font = font(size);
+    const n = sx.measureText(L.line);
+    const at = L.line.indexOf(L.salary), parts = [L.line.slice(0, at), L.salary, L.line.slice(at + L.salary.length)];
+    let x = (w - n.width) / 2;
+    const base = (h - (n.actualBoundingBoxAscent + n.actualBoundingBoxDescent)) / 2 + n.actualBoundingBoxAscent;
+    parts.forEach((t, k) => { sx.fillStyle = k === 1 ? '#f00' : '#000'; sx.fillText(t, x, base); x += sx.measureText(t).width; });
+    const d = sx.getImageData(0, 0, w, h).data;
+    // 0 no ink, 1 the rest of the line, 2 the word for salary
+    const cls = new Uint8Array(w * h), cols = new Float64Array(w);
+    let x0 = w, x1 = 0, y0 = h, y1 = 0;
+    for (let p = 0, o = 0; p < w * h; p++, o += 4) {
+      if (d[o + 3] < 120) continue;
+      const c = d[o] > 110 && d[o] > d[o + 1] + 60 ? 2 : 1, px = p % w, py = (p / w) | 0;
+      cls[p] = c; if (c === 1) cols[px]++;
+      if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py;
+    }
+    // the rest of the line in four shares of ink, left to right. A cut moves to the gap between two words when
+    // one is near, so a piece is a whole word where it can be; a cut through a word is torn, never straight
+    let total = 0; for (let i = 0; i < w; i++) total += cols[i];
+    const ink = new Uint8Array(w);
+    for (let p = 0; p < w * h; p++) if (cls[p]) ink[p % w] = 1;
+    const gaps = [];
+    for (let i = x0, g0 = -1; i <= x1; i++) { if (!ink[i] && g0 < 0) g0 = i; if (ink[i] && g0 >= 0) { if (i - g0 > size * 0.12) gaps.push((g0 + i) / 2); g0 = -1; } }
+    const cuts = [];
+    for (let i = 0, acc = 0, k = 1; i < w && k < 4; i++) {
+      acc += cols[i];
+      if (acc < (total * k) / 4) continue;
+      const near = gaps.filter((g) => Math.abs(g - i) < (x1 - x0) * 0.12 && !cuts.some((c) => c.x === g)).sort((a, b) => Math.abs(a - i) - Math.abs(b - i))[0];
+      cuts.push(near !== undefined ? { x: near, torn: 0 } : { x: i, torn: 1 });
+      k++;
+    }
+    cuts.sort((a, b) => a.x - b.x);
+    const tear = (c, py) => c.x + c.torn * (Math.sin(py * 0.13 + c.x) * 4 + Math.sin(py * 0.37 + c.x * 1.7) * 2);
+    const pieceAt = (px, py) => {
+      const c = cls[py * w + px];
+      if (c !== 1) return c === 2 ? 4 : -1;
+      let k = 0; for (const cut of cuts) if (px > tear(cut, py)) k++;
+      return k;
+    };
+    // how close a point lies to a torn cut, so the pieces crumble a little there when they part
+    const torn = (px, py) => { let d = 99; for (const c of cuts) if (c.torn) d = Math.min(d, Math.abs(px - tear(c, py))); return d; };
+    const sites = Array.from({ length: CUT }, () => []), seen = new Set();
+    for (let y = 1; y < h - 1; y++) for (let xx = 1; xx < w - 1; xx++) {
+      const p = y * w + xx;
+      if (!cls[p] || (cls[p - 1] && cls[p + 1] && cls[p - w] && cls[p + w])) continue;
+      const key = Math.floor(xx / EDGE) * 100003 + Math.floor(y / EDGE);
+      if (seen.has(key)) continue;
+      seen.add(key); sites[pieceAt(xx, y)].push(xx, y);
+    }
+    for (let y = ROW / 2; y < h; y += ROW) for (let xx = STEP / 2 + ((y / ROW) & 1) * STEP * 0.5; xx < w; xx += STEP) {
+      const k = pieceAt(Math.round(xx), Math.round(y));
+      if (k >= 0) sites[k].push(xx, y);
+    }
+    const pos = new Float32Array(N * 2), edge = new Float32Array(N).fill(99), pieces = [];
+    for (let k = 0; k < CUT; k++) {
+      const st = sites[k], S = st.length / 2, M = pieceGrains[k].length;
+      const idx = Array.from({ length: S }, (_, j) => j).sort((a, b) => st[a * 2] - st[b * 2] || st[a * 2 + 1] - st[b * 2 + 1]);
+      let a0 = w, a1 = 0, b0 = h, b1 = 0;
+      for (let j = 0; j < S; j++) { const sx_ = st[j * 2], sy = st[j * 2 + 1]; if (sx_ < a0) a0 = sx_; if (sx_ > a1) a1 = sx_; if (sy < b0) b0 = sy; if (sy > b1) b1 = sy; }
+      if (!S) { a0 = a1 = w / 2; b0 = b1 = h / 2; }
+      pieces.push({ x: (a0 + a1) / 2, y: (b0 + b1) / 2, rad: Math.max(a1 - a0, b1 - b0) / 2 + 4 });
+      for (let j = 0; j < M; j++) {
+        const i = pieceGrains[k][j];
+        if (!S) { pos[i * 2] = w / 2; pos[i * 2 + 1] = h / 2; continue; }
+        // several grains share a site, each a hair apart, so the rules read as ink rather than as dots
+        const q = idx[Math.min(S - 1, Math.floor((j * S) / M))], a = J[i * 3 + 2] * TAU;
+        pos[i * 2] = st[q * 2] + Math.cos(a) * 0.45; pos[i * 2 + 1] = st[q * 2 + 1] + Math.sin(a) * 0.45;
+        if (k < 4) edge[i] = torn(st[q * 2], st[q * 2 + 1]);
       }
     }
-    return out;
+    return { pos, edge, pieces, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, hw: Math.max(1, (x1 - x0) / 2) };
   }
-  function kolamShape(s) {
-    const r = s.el.getBoundingClientRect(), b = (s.box || s.el).getBoundingClientRect();
-    const sc = Math.min(b.width, b.height) / (2 * kext);
-    const cx = b.left - r.left + b.width / 2, cy = b.top - r.top + b.height / 2;
-    s.p1 = [cx, cy, kext * sc, sc];
-    s.kol = { cx, cy, sc };
-    const out = kolamLocal(sc);
-    for (let i = 0; i < N; i++) if (isLine(i) || isPulli(i)) { out[i * 2] += cx; out[i * 2 + 1] += cy; }
-    return out;
+  // the hero: her line in the top of its box, her voice running out of the bottom of it to the screen's edge.
+  // Every script is set once per layout, so changing script later only moves a buffer.
+  function heroShape(s) {
+    const r = s.el.getBoundingClientRect(), b = s.box.getBoundingClientRect();
+    const ox = b.left - r.left, oy = b.top - r.top, th = b.height * 0.64;
+    s.lines = {};
+    for (const L of LANGS) {
+      const d = sampleLine(L, b.width, th);
+      for (let i = 0; i < N * 2; i += 2) { d.pos[i] += ox; d.pos[i + 1] += oy; }
+      d.pieces.forEach((c) => { c.x += ox; c.y += oy; });
+      d.cx += ox; d.cy += oy;
+      s.lines[L.code] = d;
+    }
+    s.voice = [ox, r.width, oy + b.height * 0.86];
+    return placeHero(s);
+  }
+  function placeHero(s) {
+    const d = s.lines[lang];
+    s.p1 = [d.cx, d.cy, d.hw, s.voice[2]];
+    s.p2 = [s.voice[0], s.voice[1], 0, 0];
+    if (!s.alt) s.alt = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, s.alt); gl.bufferData(gl.ARRAY_BUFFER, s.lines[prev].pos, gl.STATIC_DRAW);
+    return d.pos;
   }
 
-  // ---------- the kolam, broken ----------
-  // Five wedges round the centre, cut along wavering lines so no break runs straight or along an axis.
-  // A heap of flour goes whole with its piece; the line is cut, and its ends crumble.
-  const CUT = 5, CUT0 = 0.31, ARC = TAU / CUT;
-  const ROT = [-0.05, 0.04, -0.03, 0.05, -0.04];
-  const cutAt = (x, y) => (((Math.atan2(y, x) + 0.26 * Math.sin(Math.hypot(x, y) * 2.3 + 1.1) - CUT0) % TAU) + TAU) % TAU;
-  const SH = new Float32Array(N).fill(2), EDGE = new Float32Array(N).fill(9);
-  // each piece is placed by the middle of its own outline, and fitted by its larger side
-  const PIECE = Array.from({ length: CUT }, () => ({ x0: 1e9, x1: -1e9, y0: 1e9, y1: -1e9 }));
-  for (let i = 0; i < N; i++) {
-    const line = isLine(i);
-    if (!line && !isPulli(i)) continue;
-    const [x, y] = line ? pathAt(U[i]) : KOL.dots[heapOf(i)];
-    const a = cutAt(x, y), j = Math.min(CUT - 1, Math.floor(a / ARC)), f = a / ARC - j, c = PIECE[j];
-    SH[i] = j;
-    if (line) EDGE[i] = Math.min(f, 1 - f) * ARC * Math.hypot(x, y);
-    c.x0 = Math.min(c.x0, x); c.x1 = Math.max(c.x1, x); c.y0 = Math.min(c.y0, y); c.y1 = Math.max(c.y1, y);
-  }
-  PIECE.forEach((c) => { c.x = (c.x0 + c.x1) / 2; c.y = (c.y0 + c.y1) / 2; c.rad = Math.max(c.x1 - c.x0, c.y1 - c.y0) / 2 + 0.2; });
-  attr('aShard', SH, 1);
+  // ---------- her line, broken ----------
   // each piece lands, turned a little, in the box its system's label marks out
   function shardShape(s) {
     const r = s.el.getBoundingClientRect();
@@ -544,23 +570,24 @@ export function createWave(canvas, { reduced = false } = {}) {
     const boxes = [];
     s.el.querySelectorAll('[data-shard]').forEach((b) => { boxes[+b.dataset.shard] = b.getBoundingClientRect(); });
     const out = new Float32Array(N * 2);
-    if (boxes.filter(Boolean).length < CUT) return out;
-    const sc = Math.min(...boxes.map((b, j) => Math.min(b.width, b.height) / 2 / PIECE[j].rad));
-    const loc = kolamLocal(sc);
-    // where each piece landed and where it came from, so the shader can send it home when the visitor holds
+    if (!hero || !hero.lines || boxes.filter(Boolean).length < CUT) return out;
+    const d = hero.lines[lang], P = d.pieces;
+    const sc = Math.min(1.5, ...boxes.map((b, j) => Math.min(b.width, b.height) / 2 / P[j].rad));
+    // where each piece landed and where it sat in her line, so the shader can send it home when the visitor asks
     s.pc = new Float32Array(CUT * 4);
-    boxes.forEach((b, j) => s.pc.set([b.left - r.left + b.width / 2, b.top - r.top + b.height / 2, PIECE[j].x * sc, PIECE[j].y * sc], j * 4));
-    // stacked layouts put words between the kolam and its pieces: there they re-form instead of flying
+    boxes.forEach((b, j) => s.pc.set([b.left - r.left + b.width / 2, b.top - r.top + b.height / 2, (P[j].x - d.cx) * sc, (P[j].y - d.cy) * sc], j * 4));
+    // stacked layouts put words between her line and its pieces: there they re-form instead of flying
     s.p1[0] = innerWidth < 900 ? 1 : 0;
-    s.kolR = kext * sc;
+    s.lineR = d.hw * sc;
     for (let i = 0; i < N; i++) {
-      if (!isLine(i) && !isPulli(i)) continue;
-      const j = SH[i], c = PIECE[j], b = boxes[j];
-      let x = loc[i * 2] - c.x * sc, y = loc[i * 2 + 1] - c.y * sc;
-      // close to a break the line comes loose, and a few grains spill off the piece
-      if (EDGE[i] < 0.22) {
-        const f = (1 - EDGE[i] / 0.22) ** 2, a = J[i * 3 + 2] * TAU, d = f * sc * 0.3 * J[i * 3 + 1];
-        x += Math.cos(a) * d; y += Math.sin(a) * d;
+      const j = SH[i];
+      if (j >= CUT) continue;
+      const c = P[j], b = boxes[j];
+      let x = (d.pos[i * 2] - c.x) * sc, y = (d.pos[i * 2 + 1] - c.y) * sc;
+      // close to a tear the ink comes loose, and a few grains spill off the piece
+      if (d.edge[i] < 5) {
+        const f = (1 - d.edge[i] / 5) ** 2, a = J[i * 3 + 2] * TAU, r = f * 9 * sc * J[i * 3 + 1];
+        x += Math.cos(a) * r; y += Math.sin(a) * r;
       }
       const cs = Math.cos(ROT[j]), sn = Math.sin(ROT[j]);
       out[i * 2] = b.left - r.left + b.width / 2 + x * cs - y * sn;
@@ -577,9 +604,9 @@ export function createWave(canvas, { reduced = false } = {}) {
   const push = (el, cfg, extra = {}) => { if (el) states.push({ el, ...cfg, ...extra, h0: 0, h1: 0, buf: null }); };
   const sec = (id) => document.getElementById(id);
   const stageOf = (s) => s && s.querySelector('[data-stage]');
-  push(stageOf(sec('top')), { mode: 4, p1: [0, 0, 1, 1], p2: [0, 0, 0, 0], col: INK, c: [0, 0, 0, 0] }, { name: 'hero', sec: sec('top'), box: sec('top')?.querySelector('[data-kolam]') });
+  push(stageOf(sec('top')), { mode: 4, p1: [0, 0, 1, 1], p2: [0, 0, 0, 0], col: INK, c: [0, 0, 0, 0] }, { name: 'hero', sec: sec('top'), box: sec('top')?.querySelector('[data-line]') });
   const hero = states[0] && states[0].mode === 4 ? states[0] : null;
-  // her story in five systems: the same kolam, broken into the pieces each one keeps
+  // her story in five systems: the same line, broken into the pieces each one keeps
   push(stageOf(sec('problem')), { mode: 5, p1: [0, 0, 0, 0], p2: [0, 0, 0, 0], col: INK, c: [0, 0, 0, 0] }, { name: 'scatter', sec: sec('problem'), enter: hero ? 0.3 : 0.6 });
   // the decision loop: one ring with five stations on it
   const ring = (c, W, H) => {
@@ -596,8 +623,8 @@ export function createWave(canvas, { reduced = false } = {}) {
   const caseStage = stageOf(sec('account'));
   const words = caseStage ? JSON.parse(caseStage.dataset.words || '[]') : [];
   words.forEach((word, i) => {
-    const tamil = /[\u0B80-\u0BFF]/.test(word);
-    push(caseStage, { mode: 1, p1: [0, 0, 0, reduced ? 0 : 0.5], p2: [0, 0, 0, 0], col: tamil ? ORANGE : INK, c: [1, 0, word === 'APPROVE' ? 1 : 0, DOT] },
+    // her language's own name and greeting are drawn in orange, in whatever script she chose
+    push(caseStage, { mode: 1, p1: [0, 0, 0, reduced ? 0 : 0.5], p2: [0, 0, 0, 0], col: word[0] === '{' ? ORANGE : INK, c: [1, 0, word === 'APPROVE' ? 1 : 0, DOT] },
       { name: 'case' + i, word, sec: sec('account'), step: i, steps: words.length });
   });
   push(stageOf(sec('engines')), { mode: 3, p1: [narrow ? 0.48 : 0.72, 0, 0, 0], p2: [0, 0, 0, 0], col: INK, c: [1, 0, 0, 0] }, { name: 'engines', sec: sec('engines') });
@@ -630,19 +657,31 @@ export function createWave(canvas, { reduced = false } = {}) {
         s.h1 = Math.max(s.h0, nt - vh * 0.92);
       }
     }
-    // the kolam starts to unthread almost at once, and is the wave of five systems by the time they are read
+    // her line starts to break almost at once, and is in its five pieces by the time they are read
     states[0].h0 = -1e9; states[0].h1 = Math.min(states[0].h1, vh * (hero ? 0.04 : 0.28));
     states[states.length - 1].h1 = 1e9;
   }
+  function build(s) {
+    const r = s.el.getBoundingClientRect();
+    const data = s.mode === 5 ? shardShape(s) : s.mode === 4 ? heroShape(s) : s.draw ? sample(r.width, r.height, s.draw) : s.logo ? logoShape(r.width, r.height) : wordShape(s.word, r.width, r.height);
+    if (!s.buf) s.buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, s.buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    s.lang = lang;
+  }
   function buildShapes() {
-    for (const s of states) {
-      if (s.mode !== 1 && s.mode < 4) continue;
-      const r = s.el.getBoundingClientRect();
-      const data = s.mode === 5 ? shardShape(s) : s.mode === 4 ? kolamShape(s) : s.draw ? sample(r.width, r.height, s.draw) : s.logo ? logoShape(r.width, r.height) : wordShape(s.word, r.width, r.height);
-      if (!s.buf) s.buf = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, s.buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
-    }
+    for (const s of states) if (s.mode === 1 || s.mode >= 4) build(s);
     built.w = innerWidth;
+  }
+  // her line moves to another script: the hero morphs from the old one, and the pieces below follow
+  function setLang(code, instant) {
+    if (code === lang || !LANGS.some((L) => L.code === code)) return;
+    prev = instant ? code : lang; lang = code;
+    morph0 = instant || reduced ? -1e9 : performance.now();
+    if (!hero || !hero.lines) return;
+    const data = placeHero(hero); // binds and fills the buffer of the script it leaves, so it runs first
+    gl.bindBuffer(gl.ARRAY_BUFFER, hero.buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    const scatter = states.find((s) => s.mode === 5);
+    if (scatter) build(scatter);
   }
   function layout(rebuild) {
     vw = canvas.clientWidth || innerWidth; vh = innerHeight;
@@ -740,8 +779,8 @@ export function createWave(canvas, { reduced = false } = {}) {
   }
 
   // ---------- frame ----------
-  // the kolam's opening is set from outside (main.js runs it with her words); finished by default
-  const intro = { gather: 0, amp: 0, settle: 1, tau: 1 };
+  // her line's opening is set from outside (main.js runs it with her words); finished by default
+  const intro = { rise: 1, amp: 0, voice: 1 };
   let approve = 0, sel = 0, join = 0, t0 = performance.now(), last = t0;
   const set4 = (n, v) => gl.uniform4f(U_[n], v[0], v[1], v[2], v[3]);
   function bindState(s, which, rect) {
@@ -766,19 +805,19 @@ export function createWave(canvas, { reduced = false } = {}) {
     // nothing on screen to draw: both shapes are well outside the viewport
     const off = (r) => r.bottom < -vh * 0.4 || r.top > vh * 1.4;
     const idle = off(ra) && (ib === ia || off(rb));
-    const kol = !idle && (A.mode >= 4 || B.mode >= 4);
-    if (trail && kol) {
+    const line = !idle && (A.mode >= 4 || B.mode >= 4);
+    if (trail && line) {
       const moved = Math.hypot(mouse.x - trail.px, mouse.y - trail.py);
       stepTrail(trail.px < -1e3 ? 0 : Math.max(0.2 * mouse.s, Math.min(1, moved / 8)) * (mouse.x < -1e3 ? 0 : 1));
     }
     gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
     if (idle) return { a: A, b: B, f };
-    if (hero && hero.kol) {
-      const [hx, hy] = pathAt(drawAt(intro.tau));
-      gl.uniform2f(U_.uHead, hero.kol.cx + hx * hero.kol.sc, hero.kol.cy + hy * hero.kol.sc);
-      // a touch past the end, so the last grains are laid down rather than left in the hand
-      gl.uniform4f(U_.uKol, intro.gather, intro.amp, intro.settle, drawAt(intro.tau) * (1 + 1 / 40));
-    }
+    const mp = clamp((now - morph0) / MORPH, 0, 1);
+    gl.uniform4f(U_.uIntro, intro.rise, intro.amp, mp, intro.voice);
+    gl.bindBuffer(gl.ARRAY_BUFFER, (hero && hero.alt) || zero);
+    gl.vertexAttribPointer(locAlt, 2, gl.FLOAT, false, 0, 0);
+    // a word in her language, drawn further down, is set again once she has a new one
+    for (const s of [A, B]) if (s.word && s.word[0] === '{' && s.lang !== lang) build(s);
     // the grounds in view, so each dot takes the ink of whatever it is passing over
     const edges = [1e5, 1e5, 1e5], tones = [0, 0, 0, 0];
     let n = -1;
@@ -803,11 +842,11 @@ export function createWave(canvas, { reduced = false } = {}) {
     gl.uniform1f(U_.uJoin, pieces ? join : 0);
     if (pieces) {
       gl.uniform4fv(U_.uPc, pieces.pc); gl.uniform1fv(U_.uPr, ROT);
-      // side by side, the kolam forms in the middle of its stage; stacked, in the part of the list on screen
-      // and it ends larger than the pieces it was made from, as large as the stage comfortably holds
+      // side by side, her line forms again across the middle of its stage; stacked, in the part of the list on screen.
+      // It is set as wide as the stage comfortably holds
       const r = pieces === A ? ra : rb, stacked = pieces.p1[0];
-      const k = clamp((stacked ? r.width * 0.86 : Math.min(r.width, r.height) * 0.8) / (2 * pieces.kolR), 1, 1.8), m = pieces.kolR * k;
-      gl.uniform3f(U_.uHome, r.width / 2, stacked ? clamp(vh * 0.42 - r.top, m, r.height - m) : r.height / 2, k);
+      const k = clamp((r.width * (stacked ? 0.86 : 0.9)) / (2 * pieces.lineR), 0.5, 1.8);
+      gl.uniform3f(U_.uHome, r.width / 2, stacked ? clamp(vh * 0.42 - r.top, 80, r.height - 80) : r.height / 2, k);
     }
     gl.uniform3f(U_.uMouse, mouse.x, mouse.y, reduced ? 0 : mouse.s);
     bindState(A, 'A', ra);
@@ -822,7 +861,7 @@ export function createWave(canvas, { reduced = false } = {}) {
 
   const ready = Promise.all([
     document.fonts ? document.fonts.load('800 100px Jakarta', '₹48,500 CALLBACK') : null,
-    document.fonts ? document.fonts.load('700 100px "Anek Tamil"', 'தமிழ்') : null,
+    ...(document.fonts ? LANGS.map((L) => document.fonts.load('600 100px Anek', L.line + L.self + L.hello)) : []),
     new Promise((res) => { const im = new Image(); im.onload = () => { logoImg = im; res(); }; im.onerror = res; im.src = '/brand/logo-mask.png'; }),
   ]).then(() => layout(true));
   layout(true);
@@ -834,6 +873,9 @@ export function createWave(canvas, { reduced = false } = {}) {
     setJoin(v) { join = v; },
     setDeploy(i) { if (trust) trust.p1[3] = i; },
     setIntro(v) { Object.assign(intro, v); },
+    setLang,
+    get lang() { return lang; },
+    get morphing() { return performance.now() - morph0 < MORPH; },
     relayout: () => layout(true),
   };
 }
