@@ -80,7 +80,7 @@
   @media (min-width:760px){:root{--m:40px}}
   @media (min-width:1200px){:root{--m:64px}}
 
-  html{background:var(--color-white);-webkit-text-size-adjust:100%;scroll-padding-top:var(--nav)}
+  html{background:var(--color-white);-webkit-text-size-adjust:100%;scroll-padding-top:var(--nav);overflow-x:clip}
   html.lenis,html.lenis body{height:auto}
   .lenis.lenis-smooth{scroll-behavior:auto!important}
   body{background:var(--color-white);color:var(--color-ink);font-family:var(--font-sans);font-size:var(--text-body);line-height:1.55;
@@ -109,10 +109,14 @@
   @media (hover:hover) and (pointer:fine){.link:hover{text-decoration-color:var(--color-navy)}}
 
   /* Entrances: one per chapter heading, a soft rise for what follows. Hidden only once script runs. */
-  .rv .reveal{clip-path:inset(0 0 100% 0);transform:translateY(.25em);transition:clip-path 1000ms var(--ease-out),transform 1000ms var(--ease-out)}
+  .rv .reveal{clip-path:inset(0 0 100% 0);transform:translateY(.25em);transition:clip-path 1000ms var(--ease-out),transform 1000ms var(--ease-out);transition-delay:var(--d,0ms)}
   .rv .reveal.in{clip-path:inset(-.2em -.2em -.3em -.2em);transform:none}
   .rv .fade{opacity:0;transform:translateY(16px);transition:opacity 800ms var(--ease-out),transform 800ms var(--ease-out);transition-delay:var(--d,120ms)}
   .rv .fade.in{opacity:1;transform:none}
+  /* The hero arrives in order, run by main.js with her line: hidden from the first paint (the js class is set in
+     the head), and shown after eight seconds whatever happens, so a failed script never hides it for good */
+  .js .hero-in{opacity:0;transform:translateY(14px);animation:hero-safe 1ms 8s forwards}
+  @keyframes hero-safe{to{opacity:1;transform:none}}
   .split-line{display:block}
   /* the mask each line rises out of: tall enough for descenders, with the extra height taken back */
   .reveal :has(> .split-line){padding-bottom:.14em;margin-bottom:-.14em}
@@ -208,6 +212,7 @@
 
   @media (prefers-reduced-motion:reduce){
     .rv .reveal,.rv .fade{clip-path:none;opacity:1;transform:none;transition:none}
+    .js .hero-in{opacity:1;transform:none;animation:none}
     .js .step,.js .step[data-active="true"],.case[data-dir="up"] .step:not([data-active="true"]),.js .loop-step,.js .layer-text article{transform:none;transition:opacity 120ms linear}
     .btn:active{transform:none}
   }

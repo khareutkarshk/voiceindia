@@ -42,10 +42,12 @@ function run(sec) {
 (() => {
   // [data-land] labels wait for their piece of her line instead (see sync)
   const heads = $$('.reveal'), items = $$('.fade:not([data-land])');
+  const live = !reduced && 'IntersectionObserver' in window;
+  // hidden first, then shown, so what is on the first screen arrives in its order (each one's --d) rather than at once
+  if (live) { document.documentElement.classList.add('rv'); void document.body.offsetHeight; }
   heads.forEach((h) => h.classList.add('in'));
   items.forEach((el) => { if (el.getBoundingClientRect().top < innerHeight) el.classList.add('in'); });
-  if (reduced || !('IntersectionObserver' in window)) return items.forEach((el) => el.classList.add('in'));
-  document.documentElement.classList.add('rv');
+  if (!live) return items.forEach((el) => el.classList.add('in'));
   const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -10% 0px' });
   items.forEach((el) => el.classList.contains('in') || io.observe(el));
   (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
@@ -53,7 +55,7 @@ function run(sec) {
       const split = SplitText.create(h, { type: 'lines', mask: 'lines', linesClass: 'split-line', autoSplit: true,
         onSplit: (self) => gsap.from(self.lines, {
           yPercent: 108, duration: 1.05, ease: 'expo.out', stagger: 0.09,
-          scrollTrigger: h.id === 'h-hero' ? undefined : { trigger: h, start: 'top 88%', once: true },
+          scrollTrigger: { trigger: h, start: 'top 88%', once: true },
         }) });
       return split;
     });
@@ -66,20 +68,84 @@ function run(sec) {
 const intro = reduced ? { rise: 1, amp: 0, voice: 1 } : { rise: 0, amp: 0, voice: 0 };
 let introTl = null, listen = null;
 (() => {
-  const en = $('.voice-en'), cap = $('#voice-cap');
-  if (!en || reduced) return;
-  const tl = gsap.timeline({ delay: 0.4 });
+  const depthIn = $('[data-depth-in]');
+  if (!$('[data-line]') || reduced) return;
+  // it waits for the particles, so on a slow device the words never arrive before her line (boot() plays it;
+  // without particles it plays after a moment anyway)
+  const tl = gsap.timeline({ paused: true, delay: 0.25 });
+  setTimeout(() => tl.paused() && tl.play(), 1600);
   tl.to(intro, { voice: 1, duration: 0.9, ease: 'power2.out' }, 0)
     .to(intro, { rise: 1, duration: 2.1, ease: 'power2.inOut' }, 0.55);
   // each word she says is a breath of sound through her voice
   [0.55, 0.9, 1.22, 1.6].forEach((at) => tl.to(intro, { amp: 0.9, duration: 0.14, ease: 'power2.out' }, at)
     .to(intro, { amp: 0.08, duration: 0.36, ease: 'power2.in' }, at + 0.14));
-  tl.to(intro, { amp: 0, duration: 0.6 }, 2.2)
-    .from(en, { autoAlpha: 0, y: 6, duration: 0.5, ease: 'power2.out' }, 2.3)
-    .from(cap, { autoAlpha: 0, duration: 0.6 }, 2.6);
+  tl.to(intro, { amp: 0, duration: 0.6 }, 2.2);
+  // then what she said is answered: the headline rising out of a mask, then the sentence, the actions,
+  // and last the languages it could have been said in
+  const h1 = $('#h-hero');
+  tl.fromTo(h1, { opacity: 1, y: '0.3em', clipPath: 'inset(0% 0% 100% 0%)' },
+    { y: 0, clipPath: 'inset(-20% -2% -20% -2%)', duration: 1.1, ease: 'expo.out' }, 2.2);
+  [[1, 2.65], [2, 2.85], [3, 3.3]].forEach(([k, at]) => tl.to(`[data-hero-in="${k}"]`, { opacity: 1, y: 0, duration: 0.9, ease: 'expo.out', stagger: 0.12 }, at));
+  // the rosette behind comes up first and quietly, so the screen has depth before anything speaks
+  if (depthIn) tl.from(depthIn, { autoAlpha: 0, scale: 0.94, duration: 3.2, ease: 'expo.out' }, -0.3);
   introTl = tl;
   listen = createListen($('#listen'), { onStart: () => tl.timeScale(1).restart(true) });
 })();
+
+// ---------- depth: a banknote's rosette, engraved behind her line ----------
+// Bands of sine rings round one centre, each drawn many times a little out of phase, so the lines cross into the
+// lattice printed round a note's watermark. Hairlines in ice and brand blue, faint enough to sit far back.
+const rosette = $('[data-guilloche]'), depth = $('[data-depth]');
+function engrave() {
+  if (!rosette) return;
+  const h = $('#top').getBoundingClientRect(), l = $('[data-line]').getBoundingClientRect();
+  const R = Math.round(Math.max(h.width * 0.4, h.height * 0.66));
+  const cx = l.left - h.left + l.width / 2, cy = l.top - h.top + l.height * 0.42;
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  Object.assign(rosette.style, { left: `${cx - R}px`, top: `${cy - R}px`, width: `${2 * R}px`, height: `${2 * R}px` });
+  rosette.width = rosette.height = Math.round(2 * R * dpr);
+  const c = rosette.getContext('2d'), css = getComputedStyle(document.documentElement);
+  const ice = css.getPropertyValue('--color-on-navy').trim(), blue = css.getPropertyValue('--color-blue').trim();
+  c.setTransform(dpr, 0, 0, dpr, R * dpr, R * dpr);
+  c.lineWidth = 0.6;
+  // radius, swing, lobes, copies, ink, strength, and a slower second swing that braids the band
+  const bands = [
+    [0.97, 0.022, 72, 6, ice, 0.035],
+    [0.82, 0.05, 40, 10, blue, 0.24, 0.018, 8],
+    [0.6, 0.065, 28, 12, ice, 0.03, 0.022, 7],
+    [0.4, 0.06, 20, 10, blue, 0.2, 0.015, 5],
+    [0.2, 0.05, 12, 8, ice, 0.035],
+  ];
+  const TAU = Math.PI * 2;
+  for (const [r, a, n, copies, ink, alpha, a2 = 0, n2 = 0] of bands) {
+    c.strokeStyle = ink; c.globalAlpha = alpha;
+    const steps = n * 40;
+    for (let j = 0; j < copies; j++) {
+      const ph = (j / copies) * TAU;
+      c.beginPath();
+      for (let k = 0; k <= steps; k++) {
+        const t = (k / steps) * TAU, rho = R * (r + a * Math.sin(n * t + ph) + a2 * Math.sin(n2 * t - ph));
+        k ? c.lineTo(Math.cos(t) * rho, Math.sin(t) * rho) : c.moveTo(Math.cos(t) * rho, Math.sin(t) * rho);
+      }
+      c.stroke();
+    }
+  }
+}
+if (rosette) {
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(engrave);
+  let et = 0;
+  new ResizeObserver(() => { clearTimeout(et); et = setTimeout(engrave, 150); }).observe($('#top'));
+}
+// the pointer tilts the scene: her line leans towards it, the rosette away, so the two read as near and far
+const tilt = { x: 0, y: 0, tx: 0, ty: 0 };
+if (fine && !reduced) addEventListener('pointermove', (e) => { tilt.tx = e.clientX / innerWidth - 0.5; tilt.ty = e.clientY / innerHeight - 0.5; }, { passive: true });
+function parallax() {
+  if (!depth || reduced || scrollY > innerHeight * 1.3) return;
+  tilt.x += (tilt.tx - tilt.x) * 0.05; tilt.y += (tilt.ty - tilt.y) * 0.05;
+  // and the scroll: the rosette is far, so it falls behind more slowly than the page
+  depth.style.translate = `${(-tilt.x * 22).toFixed(2)}px ${(scrollY * 0.35 - tilt.y * 14).toFixed(2)}px`;
+  if (field) field.setTilt(tilt.x * 12, tilt.y * 8);
+}
 
 // ---------- her language: the panel sets it and the story below follows ----------
 // Until someone chooses, her line passes through every script on the panel, one every few seconds, so each
@@ -92,8 +158,6 @@ function speak(code) {
   her = langOf(code);
   langBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === code)));
   $$('[data-lang-name]').forEach((el) => (el.textContent = her.name));
-  // in English her line already says what the gloss would
-  const gloss = $('.voice-en'); if (gloss) gloss.style.visibility = code === 'en' ? 'hidden' : '';
   $$('[data-lang-line]').forEach((el) => { el.textContent = her.line; el.lang = code; });
   $$('[data-lang-hello]').forEach((el) => { el.textContent = her.hello; el.lang = code; });
   if (found) payoff.textContent = conclusion();
@@ -391,7 +455,7 @@ $$('[data-copy]').forEach((b) => b.addEventListener('click', () => {
 // ---------- one frame: scroll, then everything that depends on it ----------
 const tones = $$('.ch[data-tone], .foot');
 const crests = $$('.crest:not(.crest-light)');
-const voiceText = $('[data-voice-text]');
+const voiceText = $$('[data-voice-text]');
 // the five systems' labels appear as their pieces of her line land; without particles, as the stage comes up
 const landStage = $('#problem [data-stage]');
 let landing = $$('[data-land]');
@@ -410,9 +474,11 @@ function sync() {
       break;
     }
   }
-  // her words and the panel step aside as her line starts to break (only when there are particles to break)
+  // the hero's words step aside as her line starts to break, so its pieces fall through clear air
+  // (only when there are particles to break)
   // (side by side only: stacked, the pieces re-form in place and never cross her words)
-  if (voiceText) voiceText.style.opacity = field && innerWidth >= 900 ? (1 - clamp((scrollY - 40) / 190, 0, 1)).toFixed(3) : '';
+  const said = field && innerWidth >= 900 ? (1 - clamp((scrollY - 40) / 190, 0, 1)).toFixed(3) : '';
+  voiceText.forEach((el) => (el.style.opacity = said));
   if (landing && !field && landStage && landStage.getBoundingClientRect().top < innerHeight * 0.5) land();
   const { p0, len } = run(caseSec);
   setStep(clamp(Math.floor(((scrollY - p0) / len) * steps.length - 0.3), 0, steps.length - 1));
@@ -426,6 +492,7 @@ function frame(t) {
     const r = field.render(t);
     if (landing && r && (r.a.name !== 'hero' || (r.b.name === 'scatter' && r.f > 0.85))) land();
   }
+  parallax();
   sync();
   requestAnimationFrame(frame);
 }
@@ -446,7 +513,7 @@ function boot() {
     const wrap = $('[data-join-wrap]'); if (wrap) wrap.hidden = false;
     field.setApprove(approved);
     field.setEngine(rows.findIndex((r) => r.dataset.engine === sel));
-    f.ready.then(() => ScrollTrigger.refresh());
+    f.ready.then(() => { ScrollTrigger.refresh(); if (introTl && introTl.paused()) introTl.play(); });
   });
 }
 if ('requestIdleCallback' in window) requestIdleCallback(boot, { timeout: 500 }); else setTimeout(boot, 150);

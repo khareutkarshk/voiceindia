@@ -31,6 +31,7 @@ uniform float uFar;
 uniform float uSel;     // the engine whose thread is lit     // travel distance (in screens) beyond which shapes dissolve instead of fly
 uniform vec3 uBand;      // viewport y of up to three ground edges
 uniform vec4 uBandTone;  // tone (0 light, 1 navy) of the ground above, between and below them
+uniform vec2 uTilt;      // the pointer's lean on the hero, px: her line is near, so it moves most
 uniform vec4 uIntro;     // her line: risen out of her voice, how loud she is, how far into the next script, voice shown
 uniform vec4 uPc[5];     // each broken piece: where it landed (x, y) and its centre in her line (z, w), px
 uniform float uPr[5];    // and the turn it landed with
@@ -81,7 +82,7 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
     float vy = p1.w + (st - 3.) * .75 + g * .55;
     if (aShard > 4.5) {
       float x = mix(p2.x, p2.y, u);
-      return vec3(R.xy + vec2(x, vy + voiceY(x, p2.x, p2.y, amp)), (.22 + .36 * r1) * uIntro.w * smoothstep(0., .06, u));
+      return vec3(R.xy + uTilt * .45 + vec2(x, vy + voiceY(x, p2.x, p2.y, amp)), (.22 + .36 * r1) * uIntro.w * smoothstep(0., .06, u));
     }
     float xn = clamp((pts.x - p1.x + p1.z) / (2. * p1.z), 0., 1.);
     // the next script arrives from left to right, the way the words are said, each grain lifting as it goes
@@ -95,7 +96,7 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
     p = mix(vec2(p.x, vy + voiceY(p.x, p2.x, p2.y, amp)), p, ga);
     // once it is said, the line only breathes
     p += vec2(sin(t * .6 + r1 * 6.2832), cos(t * .5 + r2 * 6.2832)) * .45;
-    return vec3(R.xy + p, mix((.3 + .4 * r1) * uIntro.w, .74 + .26 * r2, ga));
+    return vec3(R.xy + uTilt + p, mix((.3 + .4 * r1) * uIntro.w, .74 + .26 * r2, ga));
   }
   if (mode > 0.5 && mode < 1.5) {
     vec2 j = vec2(sin(t * 1.1 + r1 * 40.), cos(t * .9 + r2 * 40.)) * p1.w;
@@ -213,7 +214,7 @@ void main() {
   float fade = mix(1., abs(1. - 2. * e), far);
   // in the air a piece thins, and gathers again as it lands; her voice stays where it was and fades
   if (shatter) fade *= 1. - .25 * sin(e * 3.14159);
-  if (shatter && aShard > 4.5) { p = A.xy; fade = 1. - smoothstep(0., .3, e); }
+  if (shatter && aShard > 4.5) { p = A.xy; fade = 1. - smoothstep(0., .22, uMix); }
 
   vec2 mid = (A.xy + B.xy) * .5;
   vec2 cur = vec2(sin(mid.y * .0045 + uTime * .3), cos(mid.x * .004 - uTime * .25));
@@ -324,7 +325,7 @@ export function createWave(canvas, { reduced = false } = {}) {
 
   const narrow = innerWidth < 760;
   // enough grains that her line reads as engraved type, not a dotted one
-  const N = narrow ? 18000 : innerWidth < 1200 ? 30000 : 42000;
+  const N = narrow ? 18000 : innerWidth < 1200 ? 34000 : 52000;
 
   // seeds
   let seed = 11;
@@ -353,7 +354,7 @@ export function createWave(canvas, { reduced = false } = {}) {
   const zero = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, zero); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(N * 2), gl.STATIC_DRAW);
   const U_ = {};
-  for (const n of ['uRes', 'uDpr', 'uTime', 'uMix', 'uApprove', 'uModeA', 'uModeB', 'uRectA', 'uRectB', 'uP1A', 'uP1B', 'uP2A', 'uP2B', 'uColA', 'uColB', 'uMouse', 'uBand', 'uBandTone', 'uCA', 'uCB', 'uFar', 'uSel', 'uIntro', 'uTrail', 'uPc', 'uPr', 'uJoin', 'uHome']) U_[n] = gl.getUniformLocation(prog, n);
+  for (const n of ['uRes', 'uDpr', 'uTime', 'uMix', 'uApprove', 'uModeA', 'uModeB', 'uRectA', 'uRectB', 'uP1A', 'uP1B', 'uP2A', 'uP2B', 'uColA', 'uColB', 'uMouse', 'uBand', 'uBandTone', 'uCA', 'uCB', 'uFar', 'uSel', 'uIntro', 'uTilt', 'uTrail', 'uPc', 'uPr', 'uJoin', 'uHome']) U_[n] = gl.getUniformLocation(prog, n);
 
   // ---------- point shapes: a word or the logo, sampled to exactly N targets ----------
   const scratch = document.createElement('canvas');
@@ -464,7 +465,7 @@ export function createWave(canvas, { reduced = false } = {}) {
     const font = (px) => `600 ${px}px Anek, Jakarta, sans-serif`;
     sx.font = font(100);
     const m = sx.measureText(L.line), mh = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
-    const size = Math.min((100 * w * 0.98) / m.width, (100 * h * 0.92) / mh);
+    const size = Math.min((100 * w * 0.94) / m.width, (100 * h * 0.92) / mh);
     sx.font = font(size);
     const n = sx.measureText(L.line);
     const at = L.line.indexOf(L.salary), parts = [L.line.slice(0, at), L.salary, L.line.slice(at + L.salary.length)];
@@ -537,11 +538,11 @@ export function createWave(canvas, { reduced = false } = {}) {
     }
     return { pos, edge, pieces, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, hw: Math.max(1, (x1 - x0) / 2) };
   }
-  // the hero: her line in the top of its box, her voice running out of the bottom of it to the screen's edge.
+  // the hero: her line across the top of its box, her voice under it from one edge of the screen to the other.
   // Every script is set once per layout, so changing script later only moves a buffer.
   function heroShape(s) {
     const r = s.el.getBoundingClientRect(), b = s.box.getBoundingClientRect();
-    const ox = b.left - r.left, oy = b.top - r.top, th = b.height * 0.64;
+    const ox = b.left - r.left, oy = b.top - r.top, th = b.height * 0.8;
     s.lines = {};
     for (const L of LANGS) {
       const d = sampleLine(L, b.width, th);
@@ -550,7 +551,7 @@ export function createWave(canvas, { reduced = false } = {}) {
       d.cx += ox; d.cy += oy;
       s.lines[L.code] = d;
     }
-    s.voice = [ox, r.width, oy + b.height * 0.86];
+    s.voice = [0, r.width, oy + b.height * 0.94];
     return placeHero(s);
   }
   function placeHero(s) {
@@ -780,7 +781,7 @@ export function createWave(canvas, { reduced = false } = {}) {
 
   // ---------- frame ----------
   // her line's opening is set from outside (main.js runs it with her words); finished by default
-  const intro = { rise: 1, amp: 0, voice: 1 };
+  const intro = { rise: 1, amp: 0, voice: 1 }, tilt = [0, 0];
   let approve = 0, sel = 0, join = 0, t0 = performance.now(), last = t0;
   const set4 = (n, v) => gl.uniform4f(U_[n], v[0], v[1], v[2], v[3]);
   function bindState(s, which, rect) {
@@ -814,6 +815,7 @@ export function createWave(canvas, { reduced = false } = {}) {
     if (idle) return { a: A, b: B, f };
     const mp = clamp((now - morph0) / MORPH, 0, 1);
     gl.uniform4f(U_.uIntro, intro.rise, intro.amp, mp, intro.voice);
+    gl.uniform2f(U_.uTilt, tilt[0], tilt[1]);
     gl.bindBuffer(gl.ARRAY_BUFFER, (hero && hero.alt) || zero);
     gl.vertexAttribPointer(locAlt, 2, gl.FLOAT, false, 0, 0);
     // a word in her language, drawn further down, is set again once she has a new one
@@ -874,6 +876,7 @@ export function createWave(canvas, { reduced = false } = {}) {
     setDeploy(i) { if (trust) trust.p1[3] = i; },
     setIntro(v) { Object.assign(intro, v); },
     setLang,
+    setTilt(x, y) { tilt[0] = x; tilt[1] = y; },
     get lang() { return lang; },
     get morphing() { return performance.now() - morph0 < MORPH; },
     relayout: () => layout(true),
