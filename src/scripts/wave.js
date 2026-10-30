@@ -130,30 +130,33 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
     // a record passing behind the sphere is hidden by it
     if (r3 >= .6 && q.z < 0. && length(q.xy) < Rr * .98) a *= .12;
     gSz = s * (r3 < .6 ? 1. : .92);
-    // its birth, as p2.x runs from 0 to 1 on arrival. A point of light ignites at the centre; the grains come in
-    // from beyond the screen in a turning vortex, swelling as they fly; the sphere's rings lock in from the equator
-    // out to the poles; then the arms unfurl outwards from the core (the band and the pulses wake last, above)
+    // its birth, as p2.x runs from 0 to 1 on arrival: her voice winds into the core. One fine line of voice draws out
+    // from the centre and speaks; then the sphere is reeled in from it like thread onto a spool, ring by ring from the
+    // equator out to the poles, the line shortening from both ends as it goes; last, the arms unfurl (the band and the
+    // green pulses wake after, above)
     float ar = p2.x;
     if (ar < .999) {
-      float lat0 = (floor(r1 * 44.) + .5) / 44.;
-      bool sphere = r3 < .6;
-      float st0 = sphere ? .18 + abs(lat0 - .5) * 2. * .34 + r2 * .06 : .62 + fract(r2 * 7.3) * .08;
-      float l = clamp((ar - st0) / (sphere ? .26 : .3), 0., 1.);
-      float le = 1. - pow(1. - l, 3.);
-      if (sphere) {
-        float far = (.9 + r2) * max(w, h) * .75, a0 = r2 * 6.2832 + r1 * 3.;
-        float rad = mix(far, length(p - p1.xy), le), ang = mix(a0 + 5., atan(p.y - p1.y, p.x - p1.x), le);
-        vec2 fly = p1.xy + vec2(cos(ang), sin(ang)) * rad;
-        // the spark: a few grains are already at the centre, a small bright knot that swells before the rest arrive
-        bool spark = fract(r1 * 91.7) < .05;
-        float ka = r2 * 6.2832, kr = sqrt(fract(r1 * 13.7)) * Rr * (.03 + .16 * smoothstep(.02, .2, ar)) * (1. + .15 * sin(t * 9. + r1 * 20.));
-        vec2 knot = p1.xy + vec2(cos(ka), sin(ka)) * kr;
-        p = l > 0. ? mix(fly, p, le) : spark ? knot : fly;
-        a = l > 0. ? mix(1., a, le) * smoothstep(0., .08, l) : spark ? smoothstep(0., .06, ar) : 0.;
-        gSz *= 1. + (1. - le) * 1.6 * step(.001, l);
+      if (r3 < .6) {
+        float lat0 = (floor(r1 * 44.) + .5) / 44., k = abs(lat0 - .5) * 2.;
+        float side = r2 < .5 ? -1. : 1., L = Rr * 1.7;
+        float off = (k - .0227 + fract(r2 * 2.) * .0455) * L;
+        float speak = Rr * (.025 + .13 * smoothstep(.07, .2, ar) * (1. - smoothstep(.26, .42, ar))) * sin(3.14159 * clamp(off / L, 0., 1.) + .3);
+        float x = side * off;
+        vec2 onLine = p1.xy + vec2(x, sin(x * .045 - t * 6.) * speak + sin(x * .11 + t * 3.) * speak * .35 + g * .5);
+        // each piece of line slides in from its inner end and wraps into its ring, lifting a little as it goes
+        float l = clamp((ar - (.3 + k * .4 + fract(r2 * 2.) * .05)) / .17, 0., 1.);
+        float le = l * l * l * (l * (l * 6. - 15.) + 10.);
+        vec2 dir = p - onLine;
+        vec2 lift = vec2(-dir.y, dir.x) * side * .12 * sin(l * 3.14159);
+        p = l > 0. ? mix(onLine, p, le) + lift : onLine;
+        // the line is drawn out from the centre first, and shines while it is only a voice
+        float drawn = step(off / L, smoothstep(0., .1, ar));
+        a = l > 0. ? mix(.95, a, le) : drawn * .9;
+        gSz *= l > 0. ? 1. + sin(l * 3.14159) * .35 : .85;
       } else {
         // an arm grows outwards from the core: the inner part shows first
-        float grow = clamp((ar - .62) / .34, 0., 1.);
+        float grow = clamp((ar - .72) / .26, 0., 1.);
+        float le = 1. - pow(1. - grow, 3.);
         p = p1.xy + (p - p1.xy) * mix(.55, 1., le);
         a *= smoothstep(0., .25, grow * 1.25 - (1. - fract(u + t * (.03 + .012 * r1)))) * le;
       }
@@ -172,7 +175,8 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
     float sw = exp(-pow(d.x / 46. - (fract(t * .14 + aShard * .17) * 9. - 4.5), 2.));
     p.y -= sw * (2. + 3. * r1);
     float lit = sw * .22;
-    gSw = sw;
+    // in the pale chapter the green is only a glint as her voice passes, never a whole word
+    gSw = exp(-pow(d.x / 14. - (fract(t * .14 + aShard * .17) * 29.6 - 14.8), 2.)) * .35;
     if (uJoin > 0.) {
       // held together: each piece tears off its record, lifting and shedding dust, turns as it crosses the desk,
       // and goes home to its place in her line, whole again

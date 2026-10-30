@@ -74,7 +74,7 @@ let introTl = null, listen = null;
   const tl = gsap.timeline({ paused: true, delay: 0.15 });
   setTimeout(() => tl.paused() && tl.play(), 1600);
   // the core is born over four seconds (wave.js sets out the beats); the claim arrives while it forms
-  tl.to(intro, { core: 1, duration: 4.2, ease: 'none' }, 0);
+  tl.to(intro, { core: 1, duration: 4.8, ease: 'none' }, 0);
   const h1 = $('#h-hero');
   tl.fromTo(h1, { y: '0.3em', clipPath: 'inset(0% 0% 100% 0%)' },
     { y: 0, clipPath: 'inset(-20% -2% -20% -2%)', duration: 1.2, ease: 'expo.out' }, 1.4);
@@ -225,14 +225,14 @@ const space = (() => {
       c.globalAlpha = 0.2 * Math.pow(1 - k, 2) * Math.min(1, k * 4);
       c.beginPath(); c.arc(0, 0, R * (1.2 + k * 2.2), 0, Math.PI * 2); c.stroke();
     }
-    // the core's birth: as the spark catches, a ring of light rolls out across the screen, a green one after it
-    for (const [at, col, wide] of [[0.16, '#E6F0FF', 2.4], [0.24, '#3DDC84', 1.6]]) {
-      const k = (intro.core - at) / 0.5;
+    // the core's birth: as its last ring locks in, one soft ring of light rolls out across the screen
+    for (const [at, col, wide] of [[0.8, '#E6F0FF', 2]]) {
+      const k = (intro.core - at) / 0.45;
       if (k <= 0 || k >= 1) continue;
       c.setLineDash([]); c.strokeStyle = col;
       c.lineWidth = wide * 4; c.globalAlpha = 0.08 * (1 - k);
       c.beginPath(); c.arc(0, 0, R * (0.15 + k * 6.5), 0, Math.PI * 2); c.stroke();
-      c.lineWidth = wide; c.globalAlpha = 0.6 * Math.pow(1 - k, 1.5);
+      c.lineWidth = wide; c.globalAlpha = 0.45 * Math.pow(1 - k, 1.5);
       c.beginPath(); c.arc(0, 0, R * (0.15 + k * 6.5), 0, Math.PI * 2); c.stroke();
     }
     // the burst: one bright ring thrown out across the screen
@@ -654,7 +654,7 @@ function frame(t) {
   sync();
   if (space && scrollY < innerHeight * 1.2) space.draw(t);
   // the core's light comes up as it is born
-  if (heroTop && lit < 1) { lit = clamp((intro.core - 0.1) / 0.5, 0, 1); heroTop.style.setProperty('--lit', lit.toFixed(3)); }
+  if (heroTop && lit < 1) { lit = clamp((intro.core - 0.05) / 0.8, 0, 1); heroTop.style.setProperty('--lit', lit.toFixed(3)); }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
