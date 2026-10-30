@@ -1,8 +1,9 @@
 // The brand wave, drawn as particles. One WebGL draw call; every dot is placed in the vertex shader.
+// The page opens on the core: one sphere of grains that speaks, with the records it reads spiralling into it.
 // Threads carry the brand's meanings: navy = foundation, blue = intelligence, orange = action, green = trust.
 // Each chapter declares a shape (her line, a wave, a word, a walled field, the logo). Scrolling mixes the dots
 // from one shape to the next; the page's own scroll (smoothed by Lenis) is the only clock for that.
-// The one other clock is her line changing script in the hero, which runs on its own.
+// The one other clock is her line changing script in her chapter, which runs on its own.
 
 import { LANGS, langOf } from './langs.js';
 
@@ -18,7 +19,7 @@ attribute vec4 aSeed;   // thread, u, r1, r2
 attribute vec4 aSeed2;  // gaussian, strand, r3, size
 attribute vec2 aFrom;
 attribute vec2 aTo;
-attribute vec2 aAlt;    // her line in the script it is leaving (hero only)
+attribute vec2 aAlt;    // her line in the script it is leaving (her chapter only)
 attribute float aShard; // which of the five pieces of her line this grain breaks away with; 5 is her voice
 uniform vec2 uRes;
 uniform float uDpr, uTime, uMix, uApprove;
@@ -31,13 +32,17 @@ uniform float uFar;
 uniform float uSel;     // the engine whose thread is lit     // travel distance (in screens) beyond which shapes dissolve instead of fly
 uniform vec3 uBand;      // viewport y of up to three ground edges
 uniform vec4 uBandTone;  // tone (0 light, 1 navy) of the ground above, between and below them
-uniform vec2 uTilt;      // the pointer's lean on the hero, px: her line is near, so it moves most
+uniform vec2 uTilt;      // the pointer's lean, px: her line is near, so it moves most
 uniform vec4 uIntro;     // her line: risen out of her voice, how loud she is, how far into the next script, voice shown
 uniform vec4 uPc[5];     // each broken piece: where it landed (x, y) and its centre in her line (z, w), px
 uniform float uPr[5];    // and the turn it landed with
 uniform float uJoin;     // 0 broken, 1 held back together by the visitor
 uniform vec3 uHome;      // where the joined line forms, in the pieces' stage (x, y), and its scale against the pieces (z)
+uniform vec2 uLc[5];     // each piece's centre in her line, in her line's stage, px: what it turns about as it falls
 varying vec4 vCol;
+// what the core sets besides place and alpha: a grain's size (nearer is larger) and its colour
+float gSz = 1.;
+vec3 gCol = vec3(1.);
 
 // her voice: one thin band of grains drawn like a recording of speech. A smooth carrier swells and falls in
 // syllables that drift along it, louder where she is speaking (sx, px, as strong as pk), and it is still at both ends
@@ -60,6 +65,78 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
   float k = aSeed.x, u = aSeed.y, r1 = aSeed.z, r2 = aSeed.w;
   float g = aSeed2.x, st = aSeed2.y, r3 = aSeed2.z;
   float t = uTime, w = R.z, h = R.w;
+  if (mode > 5.5) {
+    // the core. p1 = its centre (x, y) and radius, in the stage; p2.x = how far it has gathered on arrival.
+    // Three in five grains lie on a sphere engraved in rings of latitude, like the rules on a note; each ring is a
+    // line of her voice, swelling as a voice climbs the sphere, and one orange band, the action, sweeps round it.
+    // The rest are the records it reads: five arms, one for each system her account sits in, spiralling in from far
+    // out on a tilted disc, faster as they near it, and blue (data) turning to ice (understood) as they come in. Where
+    // an arm meets the sphere, the ring it touches takes the record in: it lights white there, and the light runs round
+    // it, cooling to the logo's green as it goes: taken in, then settled as verified.
+    float Rr = p1.z;
+    vec3 q; float a;
+    vec3 ice = vec3(.86, .9, 1.), blue = vec3(.43, .57, .86), orange = vec3(1., .5, .23), green = vec3(.2, .78, .43);
+    if (r3 < .6) {
+      float rings = 44., ri = floor(r1 * rings), lat = (ri + .5) / rings;
+      float z = -cos(lat * 3.14159) + (fract(r1 * rings) - .5) * .006, ph = r2 * 6.2832, rxy = sqrt(max(0., 1. - z * z));
+      vec3 n = vec3(rxy * cos(ph), z, rxy * sin(ph));
+      float talk = sin(ph * 3. + t * 1.6 + lat * 9.) * .6 + sin(ph * 7. - t * 2.3 + lat * 4.) * .3;
+      float swell = pow(.5 + .5 * sin(lat * 9.42 - t * 1.3), 2.);
+      vec3 ax = normalize(vec3(sin(t * .21), .5, cos(t * .21)));
+      float band = exp(-pow(dot(n, ax) / .05, 2.));
+      float disp = talk * swell * .05 + band * (.04 + .04 * sin(ph * 16. - t * 4.5));
+      q = n * Rr * (1. + disp);
+      float lit = clamp(dot(n, normalize(vec3(-.5, .6, .65))) * .5 + .5, 0., 1.);
+      // the sphere turns inside the still disc; where each arm comes in, the ring there takes the record in
+      float rs = t * .12, nx = n.x * cos(rs) + n.z * sin(rs), nz = -n.x * sin(rs) + n.z * cos(rs);
+      float az = atan(nz, nx), took = 0., kept = 0.;
+      for (int k = 0; k < 5; k++) {
+        float A = float(k) * 1.2566 + t * .18 + 3.6;
+        vec3 d = vec3(cos(A), -sin(A) * sin(.62), sin(A) * cos(.62));
+        float da = abs(atan(sin(az - atan(d.z, d.x)), cos(az - atan(d.z, d.x))));
+        float onRing = exp(-pow((n.y - d.y) / .045, 2.));
+        float run = onRing * exp(-da * .8) * pow(.5 + .5 * cos(da * 7. - t * 4.), 3.);
+        took += run + exp(-pow(length(vec3(nx, n.y, nz) - d) / .16, 2.));
+        kept += run * smoothstep(.12, .8, da);
+      }
+      took = min(1., took * 1.3); kept = min(1., kept * 2.4);
+      vec3 lift = mix(vec3(1.), vec3(.13, .78, .36), smoothstep(0., .6, kept / max(took, .001)));
+      gCol = mix(mix(mix(blue, ice, lit), lift, took), orange, smoothstep(.25, .7, band));
+      a = .5 + .45 * lit + band * .3 + took * .45;
+    } else {
+      float f = fract(u + t * (.03 + .012 * r1));
+      float rr = Rr * mix(1.8, 1.04, pow(f, .85));
+      float arm = floor(r2 * 5.);
+      float ang = arm * 1.2566 + t * .18 + f * 3.6 + (fract(r2 * 5.) - .5) * mix(.5, .12, f) + g * .02;
+      q = vec3(cos(ang) * rr, g * Rr * .01 * rr / Rr, sin(ang) * rr);
+      float ti = .62;
+      q = vec3(q.x, q.y * cos(ti) - q.z * sin(ti), q.y * sin(ti) + q.z * cos(ti));
+      // a record is blue while it is only data, and turns to ice as it comes in to be understood
+      gCol = mix(blue, ice, smoothstep(.35, .95, f) * (.6 + .4 * r1));
+      a = (.3 + .6 * r1) * smoothstep(0., .18, f) * (1. - smoothstep(.86, 1., f));
+    }
+    // the sphere turns slowly; the disc it sits in holds still, so the gate and the arms read as one calm plane.
+    // All of it leans a little towards the pointer
+    float ry = (r3 < .6 ? t * .12 : 0.) + uTilt.x * .012, rx = -.18 + uTilt.y * .01, rz = -.2;
+    q = vec3(q.x * cos(ry) + q.z * sin(ry), q.y, -q.x * sin(ry) + q.z * cos(ry));
+    q = vec3(q.x, q.y * cos(rx) - q.z * sin(rx), q.y * sin(rx) + q.z * cos(rx));
+    q = vec3(q.x * cos(rz) - q.y * sin(rz), q.x * sin(rz) + q.y * cos(rz), q.z);
+    float s = 3.4 * Rr / (3.4 * Rr - q.z);
+    vec2 p = p1.xy + q.xy * s * vec2(1., -1.);
+    a *= mix(.32, 1., smoothstep(-Rr, Rr, q.z));
+    // a record passing behind the sphere is hidden by it
+    if (r3 >= .6 && q.z < 0. && length(q.xy) < Rr * .98) a *= .12;
+    gSz = s * (r3 < .6 ? 1. : .92);
+    // arriving: every grain starts as dust across the screen and is drawn in, turning, the nearest first
+    float ar = clamp(p2.x * 1.5 - r3 * .25 - fract(r1 * 7.7) * .25, 0., 1.);
+    ar = 1. - pow(1. - ar, 3.);
+    vec2 dust = vec2(fract(r1 * 13.1 + r2 * 3.7), fract(r2 * 17.3 + r3 * 5.1)) * vec2(w, h) * 1.2 - vec2(w, h) * .1;
+    vec2 dd = dust - p1.xy; float sa = (1. - ar) * 2.2;
+    dust = p1.xy + vec2(dd.x * cos(sa) - dd.y * sin(sa), dd.x * sin(sa) + dd.y * cos(sa));
+    p = mix(dust, p, ar);
+    a *= .25 + .75 * ar;
+    return vec3(R.xy + p, a);
+  }
   if (mode > 4.5) {
     // her line in five pieces, each kept by one system; pts = this grain's place in its piece.
     // Her voice is not carried down: it fades where it was (see main)
@@ -76,7 +153,7 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
       vec2 home = uHome.xy + (vec2(d.x * cs + d.y * sn, -d.x * sn + d.y * cs) + pc.zw) * mix(1., uHome.z, jj);
       p = mix(p, home, jj);
     }
-    p += vec2(sin(t * .6 + r1 * 6.2832), cos(t * .5 + r2 * 6.2832)) * .5;
+    p += vec2(sin(t * .6 + r1 * 6.2832), cos(t * .5 + r2 * 6.2832)) * .9;
     return vec3(R.xy + p, .72 + .28 * r2);
   }
   if (mode > 3.5) {
@@ -104,9 +181,12 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
     float ga = clamp(uIntro.x * 1.5 - xn * .5, 0., 1.);
     ga = 1. - pow(1. - ga, 3.);
     p = mix(vec2(p.x, vy + voiceY(p.x, p2.x, p2.y, amp, sx, pk, pw)), p, ga);
-    // once it is said, the line only breathes
-    p += vec2(sin(t * .6 + r1 * 6.2832), cos(t * .5 + r2 * 6.2832)) * .45;
-    return vec3(R.xy + uTilt + p, mix((.3 + .4 * r1) * uIntro.w, .74 + .26 * r2, ga));
+    // once it is said, the line breathes, and every few seconds her voice passes through it again, left to right,
+    // lifting the grains it crosses
+    p += vec2(sin(t * .6 + r1 * 6.2832), cos(t * .5 + r2 * 6.2832)) * .9;
+    float sw = exp(-pow((xn - (fract(t * .16) * 1.6 - .3)) / .07, 2.));
+    p += vec2((r2 - .5) * 3., -4. - 6. * r1) * sw;
+    return vec3(R.xy + uTilt + p, min(1., mix((.3 + .4 * r1) * uIntro.w, .74 + .26 * r2, ga) + sw * .25));
   }
   if (mode > 0.5 && mode < 1.5) {
     vec2 j = vec2(sin(t * 1.1 + r1 * 40.), cos(t * .9 + r2 * 40.)) * p1.w;
@@ -206,24 +286,38 @@ void main() {
   // dots leave in order along the wave (left first), so a shape peels away as a stream, not a cloud
   bool words = uModeA > .5 && uModeA < 1.5 && uModeB > .5 && uModeB < 1.5;
   // her line breaking: the pieces come away one after another, each as a body of grains
-  bool shatter = uModeA > 3.5 && uModeA < 4.5 && uModeB > 4.5;
+  bool lineA = uModeA > 3.5 && uModeA < 5.5, lineB = uModeB > 3.5 && uModeB < 5.5;
+  bool shatter = uModeA > 3.5 && uModeA < 4.5 && uModeB > 4.5 && uModeB < 5.5;
+  // the core giving way to her line: it draws in, then bursts, and the grains are caught by her words
+  bool burst = uModeA > 5.5 && uModeB > 3.5 && uModeB < 4.5;
   float e = words ? clamp(uMix * 1.35 - aSeed2.z * .35, 0., 1.)
-    : shatter ? clamp(uMix * 1.48 - aShard * .12, 0., 1.)
+    : shatter ? clamp(uMix * 1.4 - aShard * .1, 0., 1.)
+    : burst ? clamp((uMix - .12) * 1.5 - aSeed.w * .3, 0., 1.)
     : clamp(uMix * 1.7 - (aSeed.y * .55 + aSeed2.z * .15), 0., 1.);
   e = e < .5 ? 4. * e * e * e : 1. - pow(-2. * e + 2., 3.) / 2.;
   vec3 A = shape(uModeA, uRectA, uP1A, uP2A, aFrom, aAlt);
+  float szA = gSz; vec3 gA = gCol;
   vec3 B = uMix > 0. ? shape(uModeB, uRectB, uP1B, uP2B, aTo, aAlt) : A;
+  float szB = uMix > 0. ? gSz : szA; vec3 gB = gCol;
+  vec2 cc = uRectA.xy + uP1A.xy;
+  if (burst) {
+    // first the core holds its breath: it pulls in on itself, tighter and brighter
+    float hold = sin(clamp(uMix / .14, 0., 1.) * 3.14159) * (1. - step(.14, uMix));
+    A.xy = cc + (A.xy - cc) * (1. - .42 * hold);
+    A.z = min(1., A.z * (1. + hold));
+  }
   vec2 dir = B.xy - A.xy;
   // far apart: dissolve out and back in rather than fly across the words between
   float far = smoothstep(uFar, uFar + .5, length(dir) / uRes.y);
   // her line never flies across the words below it to an unrelated shape: it dissolves where it lies
   // (except when it breaks: then each piece is carried, whole, to the system that keeps it. Where the
   // layout is stacked the words lie between, so there the pieces fade out and re-form in place: p1.x of the state)
-  if (uModeA > 3.5 || uModeB > 3.5) far = shatter ? uP1B.x : 1.;
+  if (burst) far = 0.;
+  else if (lineA || lineB) far = shatter ? uP1B.x : 1.;
   vec2 p = mix(mix(A.xy, B.xy, e), e < .5 ? A.xy : B.xy, far);
   float fade = mix(1., abs(1. - 2. * e), far);
   // in the air a piece thins, and gathers again as it lands; her voice stays where it was and fades
-  if (shatter) fade *= 1. - .25 * sin(e * 3.14159);
+  if (shatter) fade *= 1. - .18 * sin(e * 3.14159);
   if (shatter && aShard > 4.5) { p = A.xy; fade = 1. - smoothstep(0., .22, uMix); }
 
   vec2 mid = (A.xy + B.xy) * .5;
@@ -231,15 +325,31 @@ void main() {
   // a piece is carried whole, so its current is read at the piece, not at each grain
   if (shatter) cur = vec2(sin(aShard * 1.7 + uTime * .3), cos(aShard * 2.3 - uTime * .25));
   p += cur * sin(e * 3.14159) * min(42., length(dir) * .1) * (1. - far);
-  // a piece lifts a little as it lets go, and settles a little as it lands
-  if (uModeA > 3.5 || uModeB > 3.5) p.y += (e < .5 ? -1. : 1.) * sin(e * 3.14159) * 16.;
+  float sw = sin(e * 3.14159);
+  if (burst) {
+    // the shockwave: every grain thrown out from the core, stirred as it flies, then caught by her line
+    vec2 o = A.xy - cc; float ol = length(o);
+    p += o / max(ol, 1.) * sw * uP1A.z * (.9 + 1.6 * aSeed.z) * (1. - far);
+    p += vec2(sin(p.y * .011 + uTime * .9 + aSeed.w * 6.2832), cos(p.x * .009 - uTime * .8 + aSeed.z * 6.2832)) * sw * 90.;
+    fade = 1.;
+  } else if (shatter && aShard < 4.5) {
+    // each piece is wrenched away whole: it rises, swells towards the viewer and turns about its own centre as it
+    // falls, shedding a little dust, and the dust is gathered back as it lands
+    vec2 pa = uLc[0], pb = uPc[0].xy;
+    for (int k = 1; k < 5; k++) if (abs(aShard - float(k)) < .5) { pa = uLc[k]; pb = uPc[k].xy; }
+    vec2 pv = mix(uRectA.xy + uTilt + pa, uRectB.xy + pb, e);
+    float spin = sw * (aShard - 2. + .5) * .32, cs = cos(spin), sn = sin(spin);
+    vec2 d = (p - pv) * (1. + .28 * sw);
+    p = pv + vec2(d.x * cs - d.y * sn, d.x * sn + d.y * cs);
+    p.y -= sw * (46. + aShard * 12.);
+    p += vec2(aSeed.z - .5, aSeed.w - .5) * pow(sw, 1.5) * (20. + 70. * aSeed2.z * aSeed2.z);
+  } else if (lineA || lineB) p.y += (e < .5 ? -1. : 1.) * sw * 16.;
   if (words) {
-    float sw = sin(e * 3.14159);
     p += vec2(sin(aSeed.z * 31. + uTime * .7), cos(aSeed.w * 27. + uTime * .6)) * sw * 26.;
     fade *= 1. - .7 * sw;
   }
   float txt = aShard < 4.5 ? 1. : 0.;
-  float lineW = mix(uModeA > 3.5 ? 1. : 0., uModeB > 3.5 ? 1. : 0., e);
+  float lineW = mix(lineA ? 1. : 0., lineB ? 1. : 0., e);
   float stiff = txt > .5 ? .3 : 1.;
   float push = mix(uModeA > 3.5 ? 1. : uModeA > 1.5 ? 0. : uModeA > .5 ? .3 : 1., uModeB > 3.5 ? 1. : uModeB > 1.5 ? 0. : uModeB > .5 ? .3 : 1., e) * uMouse.z;
   float wiped = 0.;
@@ -269,19 +379,23 @@ void main() {
   vec3 ice = mix(vec3(.153, .298, .608), vec3(.6, .72, .95), tone);
   vec3 orange = mix(vec3(.76, .255, .06), threadCol(2., 1.), tone);
   vec3 grain = txt < .5 ? ice : abs(aShard - 4.) < .5 ? orange : ink;
-  if (uModeA > 3.5) cA = grain;
-  if (uModeB > 3.5) cB = grain;
+  if (lineA) cA = grain;
+  if (lineB) cB = grain;
+  if (uModeA > 5.5) cA = gA;
+  if (uModeB > 5.5) cB = gB;
   bool hyb = floor(aSeed.w * 3.) > 1.5 && aSeed2.z >= .16;
   if (uModeA > 1.5 && uModeA < 2.5 && hyb) cA = threadCol(3., tone);
   if (uModeB > 1.5 && uModeB < 2.5 && hyb) cB = threadCol(3., tone);
   vec3 inkC = mix(vec3(.027, .106, .286), vec3(.93, .95, 1.), tone);
   // a piece of her line keeps its colours in flight; other shapes pass through the ink of the ground
-  vec3 cm = shatter ? mix(cA, cB, e) : e < .5 ? mix(cA, inkC, smoothstep(0., .5, e)) : mix(inkC, cB, smoothstep(.5, 1., e));
+  vec3 cm = shatter || burst ? mix(cA, cB, e) : e < .5 ? mix(cA, inkC, smoothstep(0., .5, e)) : mix(inkC, cB, smoothstep(.5, 1., e));
   vCol = vec4(uMix > 0. ? cm : cA, mix(A.z, B.z, e) * fade * (1. - wiped));
   vec2 q = p / uRes * 2. - 1.;
   gl_Position = vec4(q.x, -q.y, 0., 1.);
   // her line is engraved, so its grains are finer than the rest
-  gl_PointSize = mix(uCA.w > 0. ? uCA.w : aSeed2.w, uCB.w > 0. ? uCB.w : aSeed2.w, e) * mix(1., .78, lineW * txt) * uDpr;
+  // a grain of the core is larger the nearer it is, and every grain swells a little in the burst
+  float near = mix(uModeA > 5.5 ? szA : 1., uModeB > 5.5 ? szB : 1., e) * (1. + (burst ? .7 : shatter ? .25 : 0.) * sw);
+  gl_PointSize = mix(uCA.w > 0. ? uCA.w : aSeed2.w, uCB.w > 0. ? uCB.w : aSeed2.w, e) * mix(1., .78, lineW * txt) * near * uDpr;
 }`;
 
 const FS = `
@@ -334,8 +448,8 @@ export function createWave(canvas, { reduced = false } = {}) {
   gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
   const narrow = innerWidth < 760;
-  // enough grains that her line reads as engraved type, not a dotted one
-  const N = narrow ? 18000 : innerWidth < 1200 ? 34000 : 52000;
+  // enough grains that her line reads as finely engraved type and the core as a solid body
+  const N = narrow ? 26000 : innerWidth < 1200 ? 56000 : 84000;
 
   // seeds
   let seed = 11;
@@ -364,7 +478,7 @@ export function createWave(canvas, { reduced = false } = {}) {
   const zero = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, zero); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(N * 2), gl.STATIC_DRAW);
   const U_ = {};
-  for (const n of ['uRes', 'uDpr', 'uTime', 'uMix', 'uApprove', 'uModeA', 'uModeB', 'uRectA', 'uRectB', 'uP1A', 'uP1B', 'uP2A', 'uP2B', 'uColA', 'uColB', 'uMouse', 'uBand', 'uBandTone', 'uCA', 'uCB', 'uFar', 'uSel', 'uIntro', 'uTilt', 'uTrail', 'uPc', 'uPr', 'uJoin', 'uHome']) U_[n] = gl.getUniformLocation(prog, n);
+  for (const n of ['uRes', 'uDpr', 'uTime', 'uMix', 'uApprove', 'uModeA', 'uModeB', 'uRectA', 'uRectB', 'uP1A', 'uP1B', 'uP2A', 'uP2B', 'uColA', 'uColB', 'uMouse', 'uBand', 'uBandTone', 'uCA', 'uCB', 'uFar', 'uSel', 'uIntro', 'uTilt', 'uTrail', 'uPc', 'uPr', 'uJoin', 'uHome', 'uLc']) U_[n] = gl.getUniformLocation(prog, n);
 
   // ---------- point shapes: a word or the logo, sampled to exactly N targets ----------
   const scratch = document.createElement('canvas');
@@ -466,7 +580,7 @@ export function createWave(canvas, { reduced = false } = {}) {
   const pieceGrains = Array.from({ length: CUT }, () => []);
   for (const i of order) if (SH[i] < CUT) pieceGrains[SH[i]].push(i);
   // engraved: the ink is laid in fine horizontal rules with a clean contour, like the print on a note
-  const ROW = 3.1, STEP = 1.9, EDGE = 1.6;
+  const ROW = 2.5, STEP = 1.5, EDGE = 1.3;
   // her line set in the box (w by h px), and every grain's place in it; `pieces` are the five pieces' centres and reach
   function sampleLine(L, w, h) {
     w = Math.max(2, Math.round(w)); h = Math.max(2, Math.round(h));
@@ -548,9 +662,9 @@ export function createWave(canvas, { reduced = false } = {}) {
     }
     return { pos, edge, pieces, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, hw: Math.max(1, (x1 - x0) / 2) };
   }
-  // the hero: her line across the top of its box, her voice under it from one edge of the screen to the other.
+  // her chapter: her line across the top of its box, her voice under it from one edge of the screen to the other.
   // Every script is set once per layout, so changing script later only moves a buffer.
-  function heroShape(s) {
+  function lineShape(s) {
     const r = s.el.getBoundingClientRect(), b = s.box.getBoundingClientRect();
     const ox = b.left - r.left, oy = b.top - r.top, th = b.height * 0.8;
     s.lines = {};
@@ -584,8 +698,8 @@ export function createWave(canvas, { reduced = false } = {}) {
       boxes[+el.dataset.shard] = { x: b.left - r.left + b.width / 2, y: b.top - r.top + b.height / 2, w: el.offsetWidth, h: el.offsetHeight, rot: +el.dataset.rot || 0 };
     });
     const out = new Float32Array(N * 2);
-    if (!hero || !hero.lines || boxes.filter(Boolean).length < CUT) return out;
-    const d = hero.lines[lang], P = d.pieces;
+    if (!voice || !voice.lines || boxes.filter(Boolean).length < CUT) return out;
+    const d = voice.lines[lang], P = d.pieces;
     // one scale for every piece, the largest at which each still sits inside its slip
     const sc = Math.min(narrow ? 1.9 : 1.4, ...boxes.map((b, j) => Math.min((b.w * 0.88) / (2 * P[j].hw), (b.h * 0.86) / (2 * P[j].hh))));
     // where each piece landed and where it sat in her line, so the shader can send it home when the visitor asks
@@ -612,6 +726,15 @@ export function createWave(canvas, { reduced = false } = {}) {
     return out;
   }
 
+  // ---------- the core ----------
+  // it has no points to sample: the shader places every grain. Here it is only measured, from the box the page
+  // keeps clear for it
+  function coreShape(s) {
+    const r = s.el.getBoundingClientRect(), b = (s.box || s.el).getBoundingClientRect();
+    s.p1 = [b.left - r.left + b.width / 2, b.top - r.top + b.height / 2, Math.min(b.width, b.height) * (narrow ? 0.3 : 0.29), 0];
+    return new Float32Array(N * 2);
+  }
+
   // ---------- states, in page order ----------
   // wave: p1 = tilt, amplitude, fray, voice; p2 = navy mass, y shift, -, overscan. Colours follow the ground.
   const INK = [-1, 0, 0];
@@ -620,10 +743,13 @@ export function createWave(canvas, { reduced = false } = {}) {
   const push = (el, cfg, extra = {}) => { if (el) states.push({ el, ...cfg, ...extra, h0: 0, h1: 0, buf: null }); };
   const sec = (id) => document.getElementById(id);
   const stageOf = (s) => s && s.querySelector('[data-stage]');
-  push(stageOf(sec('top')), { mode: 4, p1: [0, 0, 1, 1], p2: [0, 0, 0, 0], col: INK, c: [0, 0, 0, 0] }, { name: 'hero', sec: sec('top'), box: sec('top')?.querySelector('[data-line]') });
-  const hero = states[0] && states[0].mode === 4 ? states[0] : null;
+  push(stageOf(sec('top')), { mode: 6, p1: [0, 0, 1, 0], p2: [1, 0, 0, 0], col: INK, c: [0, 0, 0, 0] }, { name: 'hero', sec: sec('top'), box: sec('top')?.querySelector('[data-core]') });
+  const core = states[0] && states[0].mode === 6 ? states[0] : null;
+  // her line, which the core bursts into: it arrives late, so the burst has most of a screen to fly
+  push(stageOf(sec('her')), { mode: 4, p1: [0, 0, 1, 1], p2: [0, 0, 0, 0], col: INK, c: [0, 0, 0, 0] }, { name: 'voice', sec: sec('her'), box: sec('her')?.querySelector('[data-line]'), enter: core ? 0.12 : 0.6 });
+  const voice = states.find((s) => s.mode === 4) || null;
   // her story in five systems: the same line, broken into the pieces each one keeps
-  push(stageOf(sec('problem')), { mode: 5, p1: [0, 0, 0, 0], p2: [0, 0, 0, 0], col: INK, c: [0, 0, 0, 0] }, { name: 'scatter', sec: sec('problem'), enter: hero ? 0.3 : 0.6 });
+  push(stageOf(sec('problem')), { mode: 5, p1: [0, 0, 0, 0], p2: [0, 0, 0, 0], col: INK, c: [0, 0, 0, 0] }, { name: 'scatter', sec: sec('problem'), enter: voice ? 0.3 : 0.6 });
   // the decision loop: one ring with five stations on it
   const ring = (c, W, H) => {
     const m = Math.min(W, H), R = m * 0.4;
@@ -674,13 +800,13 @@ export function createWave(canvas, { reduced = false } = {}) {
         s.h1 = Math.max(s.h0, nt - vh * (narrow && s.mode === 5 ? 0.72 : 0.92));
       }
     }
-    // her line starts to break almost at once, and is in its five pieces by the time they are read
-    states[0].h0 = -1e9; states[0].h1 = Math.min(states[0].h1, vh * (hero ? 0.04 : 0.28));
+    // the core gives way as soon as the page moves, so the burst runs across the whole first screen
+    states[0].h0 = -1e9; states[0].h1 = Math.min(states[0].h1, vh * 0.02);
     states[states.length - 1].h1 = 1e9;
   }
   function build(s) {
     const r = s.el.getBoundingClientRect();
-    const data = s.mode === 5 ? shardShape(s) : s.mode === 4 ? heroShape(s) : s.draw ? sample(r.width, r.height, s.draw) : s.logo ? logoShape(r.width, r.height) : wordShape(s.word, r.width, r.height);
+    const data = s.mode === 6 ? coreShape(s) : s.mode === 5 ? shardShape(s) : s.mode === 4 ? lineShape(s) : s.draw ? sample(r.width, r.height, s.draw) : s.logo ? logoShape(r.width, r.height) : wordShape(s.word, r.width, r.height);
     if (!s.buf) s.buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, s.buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
     s.lang = lang;
@@ -689,14 +815,14 @@ export function createWave(canvas, { reduced = false } = {}) {
     for (const s of states) if (s.mode === 1 || s.mode >= 4) build(s);
     built.w = innerWidth;
   }
-  // her line moves to another script: the hero morphs from the old one, and the pieces below follow
+  // her line moves to another script: her chapter morphs from the old one, and the pieces below follow
   function setLang(code, instant) {
     if (code === lang || !LANGS.some((L) => L.code === code)) return;
     prev = instant ? code : lang; lang = code;
     morph0 = instant || reduced ? -1e9 : performance.now();
-    if (!hero || !hero.lines) return;
-    const data = placeHero(hero); // binds and fills the buffer of the script it leaves, so it runs first
-    gl.bindBuffer(gl.ARRAY_BUFFER, hero.buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    if (!voice || !voice.lines) return;
+    const data = placeHero(voice); // binds and fills the buffer of the script it leaves, so it runs first
+    gl.bindBuffer(gl.ARRAY_BUFFER, voice.buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
     const scatter = states.find((s) => s.mode === 5);
     if (scatter) build(scatter);
   }
@@ -797,8 +923,8 @@ export function createWave(canvas, { reduced = false } = {}) {
 
   // ---------- frame ----------
   // her line's opening is set from outside (main.js runs it with her words); finished by default
-  const intro = { rise: 1, amp: 0, voice: 1 }, tilt = [0, 0];
-  let approve = 0, sel = 0, join = 0, t0 = performance.now(), last = t0;
+  const intro = { rise: 1, amp: 0, voice: 1, core: 1 }, tilt = [0, 0];
+  let approve = 0, sel = 0, join = 0, t0 = performance.now(), last = t0, tNow = 0;
   const set4 = (n, v) => gl.uniform4f(U_[n], v[0], v[1], v[2], v[3]);
   function bindState(s, which, rect) {
     gl.uniform1f(U_['uMode' + which], s.mode);
@@ -832,7 +958,8 @@ export function createWave(canvas, { reduced = false } = {}) {
     const mp = clamp((now - morph0) / MORPH, 0, 1);
     gl.uniform4f(U_.uIntro, intro.rise, intro.amp, mp, intro.voice);
     gl.uniform2f(U_.uTilt, tilt[0], tilt[1]);
-    gl.bindBuffer(gl.ARRAY_BUFFER, (hero && hero.alt) || zero);
+    if (core) core.p2[0] = intro.core;
+    gl.bindBuffer(gl.ARRAY_BUFFER, (voice && voice.alt) || zero);
     gl.vertexAttribPointer(locAlt, 2, gl.FLOAT, false, 0, 0);
     // a word in her language, drawn further down, is set again once she has a new one
     for (const s of [A, B]) if (s.word && s.word[0] === '{' && s.lang !== lang) build(s);
@@ -851,7 +978,8 @@ export function createWave(canvas, { reduced = false } = {}) {
     gl.uniform4f(U_.uBandTone, tones[0], tones[1], tones[2], tones[3]);
     gl.uniform2f(U_.uRes, vw, canvas.height / dpr);
     gl.uniform1f(U_.uDpr, dpr);
-    gl.uniform1f(U_.uTime, reduced ? 2 : (now - t0) / 1000);
+    tNow = reduced ? 2 : (now - t0) / 1000;
+    gl.uniform1f(U_.uTime, tNow);
     gl.uniform1f(U_.uMix, ib !== ia ? f : 0);
     gl.uniform1f(U_.uApprove, approve);
     gl.uniform1f(U_.uFar, narrow ? -0.5 : 1.0);
@@ -860,6 +988,7 @@ export function createWave(canvas, { reduced = false } = {}) {
     gl.uniform1f(U_.uJoin, pieces ? join : 0);
     if (pieces) {
       gl.uniform4fv(U_.uPc, pieces.pc); gl.uniform1fv(U_.uPr, pieces.rot);
+      if (voice && voice.lines) gl.uniform2fv(U_.uLc, voice.lines[lang].pieces.flatMap((c) => [c.x, c.y]));
       // side by side, her line forms again across the middle of its stage; stacked, in the part of the list on screen.
       // It is set as wide as the stage comfortably holds
       const r = pieces === A ? ra : rb, stacked = pieces.p1[0];

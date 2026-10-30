@@ -62,38 +62,29 @@ function run(sec) {
   });
 })();
 
-// ---------- the hero: her voice, then her words rising out of it in the order she says them ----------
+// ---------- the hero: the core gathers out of dust, then the claim rises beside it ----------
 // The particle layer reads `intro` every frame, so it can arrive late and still be in step.
-// Scrolling before it finishes hurries it to the end.
-const intro = reduced ? { rise: 1, amp: 0, voice: 1 } : { rise: 0, amp: 0, voice: 0 };
+// Scrolling before it finishes hurries it to the end. Her line, in the chapter below, is already said.
+const intro = { rise: 1, amp: 0, voice: 1, core: reduced ? 1 : 0 };
 let introTl = null, listen = null;
 (() => {
-  const depthIn = $('[data-depth-in]');
-  if (!$('[data-line]') || reduced) return;
-  // it waits for the particles, so on a slow device the words never arrive before her line (boot() plays it;
+  if (!$('[data-core]') || reduced) return;
+  // it waits for the particles, so on a slow device the words never arrive before the core (boot() plays it;
   // without particles it plays after a moment anyway)
-  const tl = gsap.timeline({ paused: true, delay: 0.25 });
+  const tl = gsap.timeline({ paused: true, delay: 0.15 });
   setTimeout(() => tl.paused() && tl.play(), 1600);
-  tl.to(intro, { voice: 1, duration: 0.9, ease: 'power2.out' }, 0)
-    .to(intro, { rise: 1, duration: 2.1, ease: 'power2.inOut' }, 0.55);
-  // each word she says is a breath of sound through her voice
-  [0.55, 0.9, 1.22, 1.6].forEach((at) => tl.to(intro, { amp: 0.8, duration: 0.22, ease: 'sine.out' }, at)
-    .to(intro, { amp: 0.08, duration: 0.5, ease: 'sine.inOut' }, at + 0.22));
-  tl.to(intro, { amp: 0, duration: 0.6 }, 2.2);
-  // then what she said is answered: the headline rising out of a mask, then the sentence, the actions,
-  // and last the languages it could have been said in
+  tl.to(intro, { core: 1, duration: 2.6, ease: 'power2.out' }, 0);
   const h1 = $('#h-hero');
-  tl.fromTo(h1, { opacity: 1, y: '0.3em', clipPath: 'inset(0% 0% 100% 0%)' },
-    { y: 0, clipPath: 'inset(-20% -2% -20% -2%)', duration: 1.1, ease: 'expo.out' }, 2.2);
+  tl.fromTo(h1, { y: '0.3em', clipPath: 'inset(0% 0% 100% 0%)' },
+    { y: 0, clipPath: 'inset(-20% -2% -20% -2%)', duration: 1.2, ease: 'expo.out' }, 0.5);
+  [[1, 1.05], [2, 1.3], [3, 1.8]].forEach(([k, at]) => tl.to(`[data-hero-in="${k}"]`, { opacity: 1, y: 0, duration: 0.9, ease: 'expo.out' }, at));
   // once it has arrived, the action says its line once: the pulse draws and lets go
   const cta = $('.btn-voice');
-  if (cta) tl.call(() => cta.classList.add('speak'), null, 3.35).call(() => cta.classList.remove('speak'), null, 4.6);
-  [[1, 2.65], [2, 2.85], [3, 3.3]].forEach(([k, at]) => tl.to(`[data-hero-in="${k}"]`, { opacity: 1, y: 0, duration: 0.9, ease: 'expo.out', stagger: 0.12 }, at));
-  // the rosette behind comes up first and quietly, so the screen has depth before anything speaks
-  if (depthIn) tl.from(depthIn, { autoAlpha: 0, scale: 0.94, duration: 3.2, ease: 'expo.out' }, -0.3);
+  if (cta) tl.call(() => cta.classList.add('speak'), null, 2.4).call(() => cta.classList.remove('speak'), null, 3.6);
   introTl = tl;
-  listen = createListen($('#listen'), { onStart: () => tl.timeScale(1).restart(true) });
 })();
+// her recorded line, when there is one: her voice swells with it
+listen = createListen($('#listen'), { onStart: () => gsap.fromTo(intro, { amp: 0.8 }, { amp: 0, duration: 2.4, ease: 'sine.inOut' }) });
 
 // ---------- depth: a banknote's rosette, engraved behind her line, and again behind her records ----------
 // Bands of sine rings round one centre, each drawn many times a little out of phase, so the lines cross into the
@@ -102,7 +93,7 @@ let introTl = null, listen = null;
 const rosette = $('[data-guilloche]'), depth = $('[data-depth]');
 const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const rosettes = [
-  { canvas: rosette, host: $('#top'), anchor: $('[data-line]'), size: (h) => Math.max(h.width * 0.4, h.height * 0.66), y: 0.42,
+  { canvas: rosette, host: $('#her'), anchor: $('[data-line]'), size: (h) => Math.max(h.width * 0.4, h.height * 0.66), y: 0.42,
     inks: () => [css('--color-on-navy'), css('--color-blue')], strength: 1 },
   { canvas: $('[data-guilloche-records]'), host: $('#problem [data-stage]'), size: (h) => Math.max(h.width, h.height) * 0.56, y: 0.5,
     inks: () => [css('--color-navy'), css('--color-blue')], strength: innerWidth < 900 ? 0.5 : 0.75 },
@@ -149,18 +140,104 @@ rosettes.forEach((r) => {
 // the pointer tilts the scene: her line leans towards it, the rosette away, so the two read as near and far
 const tilt = { x: 0, y: 0, tx: 0, ty: 0 };
 if (fine && !reduced) addEventListener('pointermove', (e) => { tilt.tx = e.clientX / innerWidth - 0.5; tilt.ty = e.clientY / innerHeight - 0.5; }, { passive: true });
+const herSec = $('#her');
 function parallax() {
-  if (!depth || reduced || scrollY > innerHeight * 1.3) return;
+  if (reduced) return;
   tilt.x += (tilt.tx - tilt.x) * 0.05; tilt.y += (tilt.ty - tilt.y) * 0.05;
-  // and the scroll: the rosette is far, so it falls behind more slowly than the page
-  depth.style.translate = `${(-tilt.x * 22).toFixed(2)}px ${(scrollY * 0.35 - tilt.y * 14).toFixed(2)}px`;
   if (field) field.setTilt(tilt.x * 12, tilt.y * 8);
+  // and the scroll: the rosette is far, so it falls behind more slowly than the page
+  const top = herSec ? herSec.getBoundingClientRect().top : 0;
+  if (!depth || top > innerHeight || top < -innerHeight * 1.3) return;
+  depth.style.translate = `${(-tilt.x * 22).toFixed(2)}px ${(-top * 0.35 - tilt.y * 14).toFixed(2)}px`;
+  // the microprint is nearer than the rosette: it leans the other way and falls behind less
+  if (micro) micro.style.translate = `${(tilt.x * 16).toFixed(2)}px ${(-top * 0.16 + tilt.y * 10).toFixed(2)}px`;
 }
+const micro = $('[data-micro-in]');
+
+// ---------- depth behind the core ----------
+// Three planes. Far: stars, barely moving. Middle: the rings of its voice, spreading out on the tilt of its disc,
+// and in the burst one bright ring thrown out across the screen. Near: a few motes so close they are out of focus,
+// drifting, and moved most by the pointer. Drawn only while the hero is on screen.
+let heroBurst = 0;
+const space = (() => {
+  const cv = $('[data-space]'), host = $('#top'), box = $('[data-core]');
+  if (!cv || !host || !box) return null;
+  const c = cv.getContext('2d');
+  let W = 0, H = 0, dpr = 1, cx = 0, cy = 0, R = 0, stars = [], motes = [];
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+  function size() {
+    const r = host.getBoundingClientRect(), b = box.getBoundingClientRect();
+    if (!r.width) return;
+    dpr = Math.min(devicePixelRatio || 1, 2); W = r.width; H = r.height;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    cx = b.left - r.left + b.width / 2; cy = b.top - r.top + b.height / 2; R = Math.min(b.width, b.height) * 0.29;
+    seed = 7;
+    stars = Array.from({ length: Math.round((W * H) / 2200) }, () => ({ x: rnd() * W, y: rnd() * H, z: rnd(), r: 0.35 + rnd() * 0.9, ph: rnd() * 6.28 }));
+    const tints = ['201,214,242', '110,146,219'];
+    motes = Array.from({ length: innerWidth < 900 ? 4 : 6 }, (_, i) => ({ x: rnd() * W, y: rnd() * H, z: 0.4 + rnd() * 0.6, r: 14 + rnd() * 54, a: 0.05 + rnd() * 0.08, tint: tints[i % tints.length], v: 4 + rnd() * 8, ph: rnd() * 6.28 }));
+  }
+  function draw(t) {
+    if (!W) return;
+    const s = t / 1000;
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, W, H);
+    // far: stars
+    c.fillStyle = '#C9D6F2';
+    for (const p of stars) {
+      // they thin out towards the foot of the hero, so the next chapter's ground takes over without an edge
+      c.globalAlpha = (0.14 + 0.5 * p.z) * (0.65 + 0.35 * Math.sin(s * (0.8 + p.z) + p.ph)) * Math.min(1, (H - p.y) / 160);
+      const x = p.x - tilt.x * 10 * p.z, y = p.y - tilt.y * 6 * p.z;
+      c.fillRect(x, y, p.r, p.r);
+    }
+    // middle: the rings of its voice, on the disc's tilt
+    c.save();
+    c.translate(cx - tilt.x * 4, cy - tilt.y * 3);
+    c.rotate(0.2);
+    c.scale(1, 0.46);
+    // a murmur, not a pulse: three faint rings, slow, gone before they reach the words
+    c.lineWidth = 1.1;
+    c.setLineDash([1, 8]);
+    c.strokeStyle = '#8EA2CF';
+    for (let i = 0; i < 3; i++) {
+      const k = (s / 7 + i / 3) % 1;
+      c.globalAlpha = 0.2 * Math.pow(1 - k, 2) * Math.min(1, k * 4);
+      c.beginPath(); c.arc(0, 0, R * (1.2 + k * 2.2), 0, Math.PI * 2); c.stroke();
+    }
+    // the burst: one bright ring thrown out across the screen
+    if (heroBurst > 0.005 && heroBurst < 0.995) {
+      c.setLineDash([]);
+      const a = Math.sin(heroBurst * Math.PI), rr = R * (1 + heroBurst * 7);
+      c.strokeStyle = '#FFB27A';
+      c.lineWidth = 10; c.globalAlpha = 0.1 * a;
+      c.beginPath(); c.arc(0, 0, rr, 0, Math.PI * 2); c.stroke();
+      c.lineWidth = 2.2; c.globalAlpha = 0.6 * a;
+      c.beginPath(); c.arc(0, 0, rr, 0, Math.PI * 2); c.stroke();
+    }
+    c.restore();
+    // near: motes out of focus
+    for (const m of motes) {
+      const x = ((m.x + Math.sin(s * 0.07 * m.v + m.ph) * 30 - tilt.x * 70 * m.z) % (W + 200) + W + 200) % (W + 200) - 100;
+      const y = m.y + Math.cos(s * 0.05 * m.v + m.ph) * 22 - tilt.y * 40 * m.z - heroBurst * 160 * m.z;
+      const g = c.createRadialGradient(x, y, 0, x, y, m.r);
+      g.addColorStop(0, `rgba(${m.tint},${m.a})`); g.addColorStop(0.55, `rgba(${m.tint},${m.a * 0.55})`); g.addColorStop(1, `rgba(${m.tint},0)`);
+      c.globalAlpha = 1; c.fillStyle = g;
+      c.beginPath(); c.arc(x, y, m.r, 0, Math.PI * 2); c.fill();
+    }
+    c.globalAlpha = 1;
+  }
+  size();
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(size);
+  let st = 0;
+  new ResizeObserver(() => { clearTimeout(st); st = setTimeout(size, 150); }).observe(host);
+  if (reduced) { requestAnimationFrame((t) => draw(t)); return null; }
+  return { draw };
+})();
 
 // ---------- her language: the panel sets it and the story below follows ----------
 // Until someone chooses, her line passes through every script on the panel, one every few seconds, so each
-// visitor sees their own go by. It rests while the panel is pointed at or focused, while the tab is hidden and
-// once the page is scrolled; a choice ends it for good.
+// visitor sees their own go by. It runs only while her line is settled on screen, and rests while the panel is
+// pointed at or focused and while the tab is hidden; a choice ends it for good.
 let her = LANGS[0];
 const panel = $('[data-panel]'), langBtns = $$('[data-lang]', panel || document);
 function speak(code) {
@@ -180,7 +257,8 @@ if (panel) {
   panel.addEventListener('pointerleave', () => (resting = panel.contains(document.activeElement)));
   panel.addEventListener('focusout', (e) => (resting = panel.contains(e.relatedTarget) || panel.matches(':hover')));
   if (!reduced) setTimeout(() => setInterval(() => {
-    if (chosen || resting || document.hidden || scrollY > 40 || (field && field.morphing)) return;
+    const r = herSec.getBoundingClientRect(), settled = r.top < innerHeight * 0.2 && r.bottom > innerHeight * 0.75;
+    if (chosen || resting || document.hidden || !settled || (field && field.morphing)) return;
     speak(LANGS[(LANGS.indexOf(her) + 1) % LANGS.length].code);
   }, 3200), 2400);
 }
@@ -466,6 +544,8 @@ $$('[data-copy]').forEach((b) => b.addEventListener('click', () => {
 const tones = $$('.ch[data-tone], .foot');
 const crests = $$('.crest:not(.crest-light)');
 const voiceText = $$('[data-voice-text]');
+const heroTop = $('#top'), heroCopy = $('[data-hero-copy]');
+let lastBurst = -1;
 // the five systems' labels appear as their pieces of her line land; without particles, as the stage comes up
 const landStage = $('#problem [data-stage]');
 let landing = $$('[data-land]');
@@ -484,11 +564,22 @@ function sync() {
       break;
     }
   }
-  // the hero's words step aside as her line starts to break, so its pieces fall through clear air
-  // (only when there are particles to break)
-  // (side by side only: stacked, the pieces re-form in place and never cross her words)
-  const said = field && innerWidth >= 900 ? (1 - clamp((scrollY - 40) / 190, 0, 1)).toFixed(3) : '';
+  // her chapter's words step aside as her line starts to break, so its pieces fall through clear air
+  // (only when there are particles to break; side by side only: stacked, the pieces re-form in place)
+  const ls = landStage ? landStage.getBoundingClientRect().top / innerHeight : 1;
+  const said = field && innerWidth >= 900 ? clamp((ls - 0.7) / 0.22, 0, 1).toFixed(3) : '';
   voiceText.forEach((el) => (el.style.opacity = said));
+  // the core bursts across the first screen: its light flares, and the claim is thrown up and away with it
+  const burst = reduced ? 0 : clamp((scrollY - innerHeight * 0.02) / (innerHeight * 0.7), 0, 1);
+  heroBurst = burst;
+  if (burst !== lastBurst && scrollY < innerHeight * 1.5) {
+    lastBurst = burst;
+    const b = Math.sin(Math.min(1, burst * 1.6) * Math.PI / 2);
+    heroTop.style.setProperty('--burst', (Math.sin(burst * Math.PI)).toFixed(3));
+    heroCopy.style.opacity = (1 - b).toFixed(3);
+    heroCopy.style.translate = `0 ${(-b * 90).toFixed(1)}px`;
+    heroCopy.style.filter = b > 0.01 ? `blur(${(b * 8).toFixed(1)}px)` : '';
+  }
   // and in any case once the desk is well into view (a jump past the hero skips the pieces' flight)
   if (landing && landStage && landStage.getBoundingClientRect().top < innerHeight * (field ? 0.75 : 0.5)) land();
   const { p0, len } = run(caseSec);
@@ -501,10 +592,11 @@ function frame(t) {
   if (field) {
     field.setIntro(listen ? { ...intro, amp: Math.max(intro.amp, listen.level()) } : intro);
     const r = field.render(t);
-    if (landing && r && (r.a.name !== 'hero' || (r.b.name === 'scatter' && r.f > 0.85))) land();
+    if (landing && r && (!['hero', 'voice'].includes(r.a.name) || (r.b.name === 'scatter' && r.f > 0.85))) land();
   }
   parallax();
   sync();
+  if (space && scrollY < innerHeight * 1.2) space.draw(t);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

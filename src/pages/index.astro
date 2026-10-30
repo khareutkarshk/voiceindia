@@ -133,6 +133,12 @@ const ccNote = 'mt-1 text-[.875rem] text-slate';
 const bubble = 'max-w-[88%] rounded-[10px] px-3 py-2 leading-[1.4] compact:px-2.5 compact:py-1.5 compact:text-[.875rem]';
 const port = 'group/p relative grid content-center gap-[3px] text-small text-slate max-lg:pl-16 max-lg:text-left max-lg:before:absolute max-lg:before:top-2.5 max-lg:before:left-[41px] max-lg:before:h-px max-lg:before:w-[18px] max-lg:before:bg-blue/30 max-lg:before:content-[""] max-lg:after:absolute max-lg:after:top-[5px] max-lg:after:left-[31px] max-lg:after:size-3.5 max-lg:after:rounded-full max-lg:after:border-2 max-lg:after:border-blue max-lg:after:bg-white max-lg:after:content-[""] max-lg:in-data-[phase=act]:data-[acts=yes]:after:animate-outflow max-lg:in-data-[phase=act]:data-[acts=yes]:after:border-orange max-lg:in-data-[phase=act]:data-[acts=yes]:after:bg-orange motion-reduce:after:animate-none';
 const portEm = 'translate-y-1 font-semibold text-[#94A3B8] not-italic opacity-0 transition-[opacity,translate] duration-300 ease-out in-data-[phase=act]:translate-y-0 in-data-[phase=act]:opacity-100 group-data-[acts=yes]/p:in-data-[phase=act]:text-rust';
+// the microprint behind her line: every script's version of it, one row each, starting at a different language
+const microRows = Array.from({ length: 34 }, (_, i) => {
+  const lines = LANGS.map((L) => L.line);
+  const row = [...lines.slice(i % lines.length), ...lines.slice(0, i % lines.length)].join('   ');
+  return `${row}   ${row}   `;
+});
 const navItems = [['#account', 'Her account'], ['#gate', 'The gate'], ['#engines', 'Engines'], ['#security', 'Security'], ['#pilot', 'Pilot']];
 const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language', '{lang}'], ['Contacts', '4', true], ['Promise to pay', 'None', true], ['Last outcome', 'Call after salary', true]];
 ---
@@ -187,12 +193,47 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
     </header>
 
     <main id="main">
-      <section id="top" class="ch relative overflow-clip bg-navy text-on-navy" data-state="hero" data-tone="dark" aria-labelledby="h-hero">
+      <!-- The product first: one core of grains that speaks, with the records it reads spiralling into it. The shader
+           places every grain; [data-core] only keeps the space clear. On scroll the core draws in and bursts, and its
+           grains are caught by her line in the chapter below. -->
+      <section id="top" class="ch relative overflow-clip bg-navy text-on-navy" data-state="core" data-tone="dark" aria-labelledby="h-hero">
+        <div class="core-glow pointer-events-none absolute inset-0 z-0" aria-hidden="true"></div>
+        <!-- Depth round the core, in three planes (main.js draws it): far stars, the rings of its voice spreading out on
+             the disc's tilt, and a few motes so near they are out of focus. The pointer moves the near ones most. -->
+        <canvas class="pointer-events-none absolute inset-0 z-0 size-full" aria-hidden="true" data-space></canvas>
+        <div class={stage} data-stage aria-hidden="true"></div>
+        <!-- The space the core turns in. It bleeds off the right edge, so the claim can take more than half the width. -->
+        <div class="pointer-events-none relative z-1 h-[min(50svh,96vw)] lg:absolute lg:inset-y-[4%] lg:right-[max(0px,calc((100vw_-_1440px)/2))] lg:h-auto lg:w-[min(44%,640px)]" data-core aria-hidden="true"></div>
+        <!-- The claim: one large thing, one plain sentence that names the product, one action. What it is built to
+             respect closes the first screen in a single line, instead of a row of labelled boxes. -->
+        <div class="wrap relative z-3 grid min-h-[max(640px,calc(100svh_-_var(--nav)))] grid-rows-[minmax(0,1fr)_auto] pt-[clamp(32px,6vh,72px)] pb-[clamp(32px,5vh,56px)] max-lg:min-h-0 max-lg:pt-2" data-hero-copy>
+          <div class="self-center lg:max-w-[min(52rem,60%)]">
+            <h1 id="h-hero" class="text-[length:clamp(2.625rem,.4rem_+_4.6vw,4.5rem)] leading-[.98] font-semibold tracking-[-.045em] text-white max-sm:text-[length:10.4vw]">The intelligence layer <br class="max-sm:hidden" />for banks and NBFCs</h1>
+            <p class="hero-in mt-[clamp(28px,4.5vh,48px)] max-w-[36ch] text-[length:clamp(1.125rem,.95rem_+_.45vw,1.375rem)] leading-[1.5] text-white" data-hero-in="1">Voice India Super Intelligence reads every account, call and policy you already hold, works out the next best action, and acts only within the permissions you&nbsp;set.</p>
+            <div class="hero-in mt-[clamp(32px,5vh,56px)] flex flex-wrap items-center gap-x-10 gap-y-4" data-hero-in="2">
+              <a class="btn btn-voice" href="#pilot"><span>Book a demo</span><svg viewBox="0 0 34 14" aria-hidden="true"><path class="flat" d="M1 7h32" /><path class="beat" pathLength="1" d="M1 7h5c.8 0 1 1.6 1.8 1.6S9.2 5.6 10 5.6 12 12 13 12s3.2-10.4 4.4-10.4S18.2 7 19.2 7H33" /></svg></a>
+              <a class="link text-white decoration-white/35 hover:decoration-white" href="#her">Hear one borrower</a>
+            </div>
+          </div>
+          <p class="hero-in mt-12 max-w-[60ch] text-body leading-[1.55] text-on-navy" data-hero-in="3">Built for RBI, TRAI and DPDPA rules. It runs on premise or in your private cloud, and starts with collections before the other five engines are switched&nbsp;on.</p>
+        </div>
+      </section>
+
+      <section id="her" class="ch relative overflow-clip bg-navy text-on-navy" data-state="voice" data-tone="dark" aria-labelledby="h-her">
         <!-- Depth: the rosette engraved round the watermark of a banknote, in hairlines, far behind her line. It turns
              very slowly and drifts against the particles as the pointer moves (main.js draws it). -->
         <div class="pointer-events-none absolute inset-0 z-0" aria-hidden="true" data-depth>
           <div class="absolute inset-0" data-depth-in>
             <canvas class="absolute motion-safe:animate-[spin_480s_linear_infinite]" data-guilloche></canvas>
+          </div>
+        </div>
+        <!-- Nearer than the rosette: microprint, as on a note. Her line in all twelve scripts, set in rows too small to
+             read at a glance, each row drifting the other way to the one above. Light comes through behind her line,
+             like a note held up to a window. -->
+        <div class="her-light pointer-events-none absolute inset-0 z-0" aria-hidden="true"></div>
+        <div class="micro pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true" data-micro>
+          <div class="absolute inset-[-40px_0]" data-micro-in>
+            {microRows.map((row, i) => <p class="micro-row" style={`--i:${i}`}><span>{row}</span><span>{row}</span></p>)}
           </div>
         </div>
         <div class={stage} data-stage aria-hidden="true"></div>
@@ -207,8 +248,8 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
             </div>
             <!-- what she said, then the languages it can be said in: the panel of a banknote, set as one line -->
             <figcaption class="mt-[clamp(8px,1.6vh,20px)] grid justify-items-center gap-2 text-center text-small text-dim" data-voice-text data-picker>
-              <p class="hero-in text-on-navy" data-hero-in="3">“After my salary comes,” said by a simulated borrower.</p>
-              <div class="hero-in flex max-w-[64rem] flex-wrap justify-center gap-x-1 gap-y-1" data-hero-in="3" role="group" aria-label="Choose the language she speaks" data-panel>
+              <p class="fade text-on-navy">“After my salary comes,” said by a simulated borrower on her fourth call.</p>
+              <div class="fade flex max-w-[64rem] flex-wrap justify-center gap-x-1 gap-y-1" style="--d:180ms" role="group" aria-label="Choose the language she speaks" data-panel>
                 {LANGS.map((L, i) => (
                   <button type="button" class="rounded-[3px] px-2 py-1 text-[.8125rem] leading-[1.3] transition-[color,box-shadow] duration-200 ease-out hover:text-white aria-pressed:text-white aria-pressed:shadow-[inset_0_-2px_var(--color-orange)]" data-lang={L.code} aria-pressed={i === 0 ? 'true' : 'false'}><span lang={L.code}>{L.self}</span>{L.code !== 'en' && <span class="sr-only">, {L.name}</span>}</button>
                 ))}
@@ -217,12 +258,11 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
           </figure>
           <!-- the claim: the headline on the left, the sentence and the actions on the right, on one baseline band -->
           <div class="mt-[clamp(28px,5vh,64px)] grid grid-cols-[minmax(0,7fr)_minmax(0,5fr)] items-end gap-x-[clamp(32px,5vw,96px)] gap-y-6 max-lg:grid-cols-1" data-voice-text>
-            <h1 id="h-hero" class="hero-in min-w-0 text-[length:clamp(2.5rem,.6rem_+_4vw,5rem)] leading-[1.02] font-semibold tracking-[-.04em] [overflow-wrap:break-word] text-white max-sm:text-[length:10vw]">Every late payment has a reason</h1>
+            <h2 id="h-her" class="reveal min-w-0 text-[length:clamp(2.5rem,.6rem_+_4vw,5rem)] leading-[1.02] font-semibold tracking-[-.04em] [overflow-wrap:break-word] text-white max-sm:text-[length:10vw]">Every late payment has a reason</h2>
             <div>
-              <p class="hero-in max-w-[40ch] text-lead leading-[1.4] text-on-navy max-sm:text-body" data-hero-in="1">Super Intelligence helps banks and NBFCs hear each overdue borrower, then proposes the next call your team&nbsp;approves.</p>
-              <div class="hero-in mt-[clamp(20px,3vh,32px)] flex flex-wrap items-center gap-x-8 gap-y-4" data-hero-in="2">
-                <a class="btn btn-voice" href="#pilot"><span>Book a demo</span><svg viewBox="0 0 34 14" aria-hidden="true"><path class="flat" d="M1 7h32" /><path class="beat" pathLength="1" d="M1 7h5c.8 0 1 1.6 1.8 1.6S9.2 5.6 10 5.6 12 12 13 12s3.2-10.4 4.4-10.4S18.2 7 19.2 7H33" /></svg></a>
-                <a class="link text-white decoration-white/35 hover:decoration-white" href="#account">Follow one case</a>
+              <p class="fade max-w-[40ch] text-lead leading-[1.4] text-on-navy max-sm:text-body">This one was said on a fourth call. Super Intelligence hears it in her own language, and makes sure the next caller hears it&nbsp;too.</p>
+              <div class="fade mt-[clamp(20px,3vh,32px)] flex flex-wrap items-center gap-x-8 gap-y-4" style="--d:220ms">
+                <a class="link text-white decoration-white/35 hover:decoration-white" href="#account">Follow her case</a>
                 {hasVoice && <button type="button" class="font-semibold text-white underline decoration-white/35 underline-offset-3 aria-pressed:decoration-orange" id="listen" aria-pressed="false">Hear her</button>}
               </div>
             </div>

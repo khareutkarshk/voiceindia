@@ -110,24 +110,27 @@
   .btn:active{transform:translateY(1px) scale(.98)}
   @media (hover:hover) and (pointer:fine){.btn:hover{transform:translateY(-1px);background:color-mix(in oklab,var(--color-orange) 90%,var(--color-sunrise))}
     .btn:active{transform:translateY(1px) scale(.98)}}
-  /* The hero's action sits in a fine frame, like the border printed round a banknote, and a soft light travels the
-     frame once every eight seconds. On hover the frame draws in close to the button. The pulse of the Voice India mark
-     follows the label: a flat line at rest that breathes into the pulse on hover, focus, and once when it arrives. */
-  @property --sweep{syntax:"<angle>";inherits:false;initial-value:0deg}
+  /* The hero's action carries the pulse of the Voice India mark after its label: a flat line at rest that breathes
+     into the pulse on hover, focus, and once when it arrives. */
   .btn-voice{gap:12px;padding-right:22px}
-  .btn-voice::before{content:"";position:absolute;inset:-6px;border-radius:8px;padding:1px;pointer-events:none;
-    background:conic-gradient(from var(--sweep),color-mix(in oklab,var(--color-on-navy) 22%,transparent) 0deg 250deg,
-      color-mix(in oklab,var(--color-orange) 80%,transparent) 310deg,color-mix(in oklab,var(--color-sunrise) 100%,transparent) 338deg,
-      color-mix(in oklab,var(--color-on-navy) 22%,transparent) 360deg);
-    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
-    animation:sweep 8s linear infinite;transition:transform 420ms var(--ease-out)}
-  @keyframes sweep{to{--sweep:360deg}}
-  @media (hover:hover) and (pointer:fine){.btn-voice:hover::before{transform:scale(.97,.9)}}
   .btn-voice svg{width:30px;height:12px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
   .btn-voice .beat{stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 700ms var(--ease-out)}
   .btn-voice .flat{transition:opacity 220ms ease 80ms}
   .btn-voice:is(:hover,:focus-visible,.speak) .beat{stroke-dashoffset:0}
   .btn-voice:is(:hover,:focus-visible,.speak) .flat{opacity:0;transition-delay:0ms}
+  /* The core's light: a deep blue bloom where it turns, flaring as it bursts (main.js sets --burst, 0 to 1) */
+  .core-glow{background:linear-gradient(to bottom,transparent 68%,var(--color-navy) 100%),radial-gradient(42% 58% at 77% 50%,color-mix(in oklab,#2D57B8 calc(55% + var(--burst,0) * 45%),transparent) 0%,transparent 70%),
+    radial-gradient(70% 90% at 77% 50%,#0B2560 0%,transparent 75%);transform:scale(calc(1 + var(--burst,0) * .35));transform-origin:77% 50%}
+  @media (max-width:899px){.core-glow{background:radial-gradient(70% 40% at 50% 26%,color-mix(in oklab,#2D57B8 calc(55% + var(--burst,0) * 45%),transparent) 0%,transparent 70%);transform-origin:50% 26%}}
+  /* Her chapter's depth: light through the note behind her line, and the microprint, faded out before her words */
+  .her-light{background:radial-gradient(46% 34% at 50% 30%,color-mix(in oklab,#2D57B8 42%,transparent) 0%,transparent 72%),
+    radial-gradient(90% 60% at 50% 100%,color-mix(in oklab,#04122F 70%,transparent) 0%,transparent 70%)}
+  .micro{-webkit-mask:linear-gradient(to bottom,transparent 4%,#000 20%,#000 40%,transparent 60%);mask:linear-gradient(to bottom,transparent 4%,#000 20%,#000 40%,transparent 60%)}
+  .micro-row{display:flex;width:max-content;white-space:pre;font-size:11px;line-height:24px;font-weight:600;color:var(--color-on-navy);
+    opacity:calc(.045 + .03 * sin(var(--i) * 1rad));animation:micro calc(150s + var(--i) * 3s) linear infinite;animation-direction:var(--dir,normal)}
+  .micro-row:nth-child(2n){--dir:reverse}
+  .micro-row span{padding-right:0}
+  @keyframes micro{to{transform:translateX(-50%)}}
   .link{font-weight:600;color:var(--color-navy);text-decoration:underline;text-decoration-color:rgba(7,27,73,.3);transition:text-decoration-color 160ms ease}
   @media (hover:hover) and (pointer:fine){.link:hover{text-decoration-color:var(--color-navy)}}
 
@@ -247,6 +250,6 @@
     .js .step,.js .step[data-active="true"],.case[data-dir="up"] .step:not([data-active="true"]),.js .loop-step,.js .layer-text article{transform:none;transition:opacity 120ms linear}
     .btn:active,.btn:hover{transform:none}
     .btn-voice .beat,.btn-voice .flat{transition:none}
-    .btn-voice::before{animation:none;transition:none}
+    .micro-row{animation:none}
   }
 }
