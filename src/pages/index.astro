@@ -30,23 +30,17 @@ const her = LANGS[0];
 const T = (text: string) => text.replaceAll('{lang}', `<span data-lang-name>${her.name}</span>`);
 
 // The five places her story sits, and what each one knows about her. Each keeps one piece of her broken line
-// (`piece`, as cut in wave.js: 4 is the word for salary, 0 to 3 the rest of the line from left to right).
-// On a wide screen the pieces hang apart in the stage (x, y: the piece's centre, percent of the stage),
-// each label on its outer side. The word for salary lands on the system that knows when it comes.
+// (`piece`, as cut in wave.js: 4 is the word for salary, 0 to 3 the rest of the line from left to right), turned a
+// little where it lies (`rot`, radians). On a wide screen the five sit round the banknote's rosette like the stations
+// round a seal (x, y: percent of the stage), the centre left empty for the line to form whole in. The word for salary
+// lands on the system that knows when it comes.
 const sources = [
-  { name: 'Customer record', fact: 'Mobile verified, KYC complete', piece: 1, x: 48.4, y: 24, side: 'above' },
-  { name: 'Loan system', fact: '₹48,500, 23 days overdue', piece: 0, x: 33.5, y: 44, side: 'left' },
-  { name: 'Call recordings', fact: '4 calls, 3 answered', piece: 2, x: 65, y: 40, side: 'right' },
-  { name: 'Transactions', fact: 'Salary credited on the 7th, instalment due on the 1st', piece: 4, x: 34, y: 70, side: 'below' },
-  { name: 'Policy PDF', fact: 'Calls 8 am to 7 pm, {lang} script approved', piece: 3, x: 63, y: 70, side: 'below' },
+  { name: 'Customer record', fact: 'Mobile verified, KYC complete', piece: 1, x: 50, y: 15, rot: -0.03 },
+  { name: 'Call recordings', fact: '4 calls, 3 answered', piece: 2, x: 83, y: 40, rot: 0.04 },
+  { name: 'Policy PDF', fact: 'Calls 8 am to 7 pm, {lang} script approved', piece: 3, x: 71, y: 80, rot: -0.025 },
+  { name: 'Transactions', fact: 'Salary credited on the 7th, instalment due on the 1st', piece: 4, x: 29, y: 80, rot: 0.03 },
+  { name: 'Loan system', fact: '₹48,500, 23 days overdue', piece: 0, x: 17, y: 40, rot: -0.04 },
 ];
-// the side labels share the stage's edge with the page margin, so they are narrower
-const labelSide: Record<string, string> = {
-  above: 'lg:bottom-full lg:left-0 lg:mb-3 lg:w-[14rem]',
-  below: 'lg:top-full lg:left-0 lg:mt-3 lg:w-[14rem]',
-  left: 'lg:top-1/2 lg:right-full lg:mr-5 lg:w-[11rem] lg:-translate-y-1/2 lg:text-right',
-  right: 'lg:top-1/2 lg:left-full lg:ml-5 lg:w-[9.5rem] lg:-translate-y-1/2',
-};
 
 // Sample: her calls since the due date. Each caller saw one system; nobody carried what she said to the next.
 const calls = [
@@ -240,12 +234,13 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
         </svg>
       </section>
 
-      <section id="problem" class="ch relative bg-mist pt-[clamp(72px,10vh,128px)] pb-[clamp(96px,14vh,170px)] text-ink max-lg:pt-10" data-state="scatter" data-tone="light" aria-labelledby="h-scatter">
+      <section id="problem" class="ch relative overflow-clip bg-mist pt-[clamp(72px,10vh,128px)] pb-[clamp(96px,14vh,170px)] text-ink max-lg:pt-10" data-state="scatter" data-tone="light" aria-labelledby="h-scatter">
         <!-- Her line breaks here. Each piece drifts down to the system that keeps it, its label beneath it. -->
-        <div class="wrap relative z-3 grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-center gap-[clamp(32px,5vw,96px)] max-lg:grid-cols-1 max-lg:gap-12">
+        <!-- no stacking context of its own: the desk sits under the particles (z 1), the words over them (z 3) -->
+        <div class="wrap relative grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-center gap-[clamp(32px,5vw,96px)] max-lg:grid-cols-1 max-lg:gap-12">
           <!-- top: the claim; middle: her four calls, each started from one piece; base: the line they lead to -->
           <!-- on stacked layouts the column dissolves into the section's grid, so the hold can follow the pieces -->
-          <div class="flex flex-col gap-10 self-center max-lg:contents">
+          <div class="relative z-3 flex flex-col gap-10 self-center *:relative *:z-3 max-lg:contents">
             <div>
               <h2 id="h-scatter" class="reveal text-navy">Her account sits in five systems</h2>
               <p class="fade mt-6 max-w-[38ch] text-lead leading-[1.45] text-slate">Each collector opened one of them, so nobody knew what she had already&nbsp;said.</p>
@@ -269,15 +264,20 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
               </button>
             </div>
           </div>
-          <!-- wide: her line, exploded. narrow: one row per system, its piece beside it -->
-          <ul class="relative grid gap-7 lg:block lg:h-[clamp(600px,86svh,780px)] sm:max-lg:grid-cols-2 sm:max-lg:gap-x-10" data-stage aria-label="Where her account is kept">
-            {sources.map(({ name, fact, piece, x, y, side }, i) => (
-              <li class="relative grid grid-cols-[min(34vw,168px)_minmax(0,1fr)] items-center gap-5 transition-opacity duration-300 ease-out in-data-[joined=true]:opacity-0 sm:max-lg:last:col-span-2 sm:max-lg:last:justify-self-center lg:absolute lg:top-(--y) lg:left-(--x) lg:block lg:w-[22%] lg:-translate-1/2" style={`--x:${x}%;--y:${y}%`}>
-                <span class="block aspect-square" data-shard={piece} aria-hidden="true"></span>
-                <p class={`fade text-small leading-[1.4] text-slate lg:absolute ${labelSide[side]}`} data-land style={`--d:${260 + i * 80}ms`}><b class="block font-semibold text-navy">{name}</b><Fragment set:html={T(fact)} /></p>
-              </li>
-            ))}
-          </ul>
+          <!-- The seal: the banknote's rosette, faint, with her line in five pieces round it, each above the name of
+               the system that keeps it. Brought together, the pieces meet in the empty centre as one line again.
+               Narrow screens list the five one under another, the piece beside its name. -->
+          <div class="relative z-1 lg:h-[clamp(600px,86svh,780px)]" data-stage>
+            <div class="pointer-events-none absolute inset-0" aria-hidden="true"><canvas class="absolute motion-safe:animate-[spin_480s_linear_infinite]" data-guilloche-records></canvas></div>
+            <ul class="relative grid gap-2 lg:block lg:h-full sm:max-lg:grid-cols-2 sm:max-lg:gap-x-8" aria-label="Where her account is kept">
+              {sources.map(({ name, fact, piece, x, y, rot }, i) => (
+                <li class="land relative grid grid-cols-[minmax(0,6fr)_minmax(0,5fr)] items-center gap-5 in-data-[joined=true]:opacity-0 lg:absolute lg:top-(--y) lg:left-(--x) lg:w-[30%] lg:-translate-1/2 lg:grid-cols-1 lg:justify-items-center lg:gap-3 lg:text-center" style={`--x:${x}%;--y:${y}%;--d:${200 + i * 90}ms`} data-land>
+                  <span class="block h-[clamp(84px,22vw,110px)] w-full lg:h-[clamp(70px,10svh,104px)]" style={`rotate:${rot}rad`} data-shard={piece} data-rot={rot} aria-hidden="true"></span>
+                  <p class="max-w-[15rem] text-small leading-[1.35] text-slate"><b class="block font-semibold text-navy">{name}</b><Fragment set:html={T(fact)} /></p>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
         <svg class={crestLight} viewBox="0 0 1440 300" preserveAspectRatio="none" aria-hidden="true"><path d="M0 210C300 150 640 120 940 170S1300 250 1440 200V300H0Z" /></svg>
       </section>

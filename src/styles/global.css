@@ -144,6 +144,10 @@
   .js.no-field [data-line-type]{opacity:1}
   .js.has-field [data-line-type]{opacity:0}
   @keyframes hero-safe{to{opacity:1;transform:none}}
+  /* a slip on the desk only fades in, never moves: the particles measure where it lies to land on it */
+  .land{transition:opacity 300ms ease-out}
+  .rv .land{opacity:0;transition:opacity 700ms var(--ease-out) var(--d,0ms)}
+  .rv .land.in{opacity:1}
   .split-line{display:block}
   /* the mask each line rises out of: tall enough for descenders, with the extra height taken back */
   .reveal :has(> .split-line){padding-bottom:.14em;margin-bottom:-.14em}
@@ -238,7 +242,7 @@
   .field[aria-invalid="true"]{border-color:var(--color-rust)}
 
   @media (prefers-reduced-motion:reduce){
-    .rv .reveal,.rv .fade{clip-path:none;opacity:1;transform:none;transition:none}
+    .rv .reveal,.rv .fade,.rv .land{clip-path:none;opacity:1;transform:none;transition:none}
     .js .hero-in{opacity:1;transform:none;animation:none}
     .js .step,.js .step[data-active="true"],.case[data-dir="up"] .step:not([data-active="true"]),.js .loop-step,.js .layer-text article{transform:none;transition:opacity 120ms linear}
     .btn:active,.btn:hover{transform:none}

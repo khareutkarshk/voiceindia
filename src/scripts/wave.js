@@ -462,7 +462,7 @@ export function createWave(canvas, { reduced = false } = {}) {
   const SH = new Float32Array(N);
   for (let i = 0; i < N; i++) SH[i] = S2[i * 4 + 2] > 0.72 ? 5 : J[i * 3] < 0.3 ? 4 : Math.floor(J[i * 3 + 1] * 4);
   attr('aShard', SH, 1);
-  const CUT = 5, ROT = [-0.05, 0.04, -0.03, 0.05, -0.04];
+  const CUT = 5;
   const pieceGrains = Array.from({ length: CUT }, () => []);
   for (const i of order) if (SH[i] < CUT) pieceGrains[SH[i]].push(i);
   // engraved: the ink is laid in fine horizontal rules with a clean contour, like the print on a note
@@ -536,7 +536,7 @@ export function createWave(canvas, { reduced = false } = {}) {
       let a0 = w, a1 = 0, b0 = h, b1 = 0;
       for (let j = 0; j < S; j++) { const sx_ = st[j * 2], sy = st[j * 2 + 1]; if (sx_ < a0) a0 = sx_; if (sx_ > a1) a1 = sx_; if (sy < b0) b0 = sy; if (sy > b1) b1 = sy; }
       if (!S) { a0 = a1 = w / 2; b0 = b1 = h / 2; }
-      pieces.push({ x: (a0 + a1) / 2, y: (b0 + b1) / 2, rad: Math.max(a1 - a0, b1 - b0) / 2 + 4 });
+      pieces.push({ x: (a0 + a1) / 2, y: (b0 + b1) / 2, hw: (a1 - a0) / 2 + 3, hh: (b1 - b0) / 2 + 3 });
       for (let j = 0; j < M; j++) {
         const i = pieceGrains[k][j];
         if (!S) { pos[i * 2] = w / 2; pos[i * 2 + 1] = h / 2; continue; }
@@ -574,19 +574,24 @@ export function createWave(canvas, { reduced = false } = {}) {
   }
 
   // ---------- her line, broken ----------
-  // each piece lands, turned a little, in the box its system's label marks out
+  // each piece lands on the slip its system's record marks out, turned with the slip (data-rot, radians)
   function shardShape(s) {
     const r = s.el.getBoundingClientRect();
-    // data-shard names the piece a box receives, so the page can list the systems in reading order
+    // data-shard names the piece a slip receives, so the page can list the systems in reading order
     const boxes = [];
-    s.el.querySelectorAll('[data-shard]').forEach((b) => { boxes[+b.dataset.shard] = b.getBoundingClientRect(); });
+    s.el.querySelectorAll('[data-shard]').forEach((el) => {
+      const b = el.getBoundingClientRect();
+      boxes[+el.dataset.shard] = { x: b.left - r.left + b.width / 2, y: b.top - r.top + b.height / 2, w: el.offsetWidth, h: el.offsetHeight, rot: +el.dataset.rot || 0 };
+    });
     const out = new Float32Array(N * 2);
     if (!hero || !hero.lines || boxes.filter(Boolean).length < CUT) return out;
     const d = hero.lines[lang], P = d.pieces;
-    const sc = Math.min(1.5, ...boxes.map((b, j) => Math.min(b.width, b.height) / 2 / P[j].rad));
+    // one scale for every piece, the largest at which each still sits inside its slip
+    const sc = Math.min(narrow ? 1.9 : 1.4, ...boxes.map((b, j) => Math.min((b.w * 0.88) / (2 * P[j].hw), (b.h * 0.86) / (2 * P[j].hh))));
     // where each piece landed and where it sat in her line, so the shader can send it home when the visitor asks
     s.pc = new Float32Array(CUT * 4);
-    boxes.forEach((b, j) => s.pc.set([b.left - r.left + b.width / 2, b.top - r.top + b.height / 2, (P[j].x - d.cx) * sc, (P[j].y - d.cy) * sc], j * 4));
+    s.rot = new Float32Array(boxes.map((b) => b.rot));
+    boxes.forEach((b, j) => s.pc.set([b.x, b.y, (P[j].x - d.cx) * sc, (P[j].y - d.cy) * sc], j * 4));
     // stacked layouts put words between her line and its pieces: there they re-form instead of flying
     s.p1[0] = innerWidth < 900 ? 1 : 0;
     s.lineR = d.hw * sc;
@@ -597,12 +602,12 @@ export function createWave(canvas, { reduced = false } = {}) {
       let x = (d.pos[i * 2] - c.x) * sc, y = (d.pos[i * 2 + 1] - c.y) * sc;
       // close to a tear the ink comes loose, and a few grains spill off the piece
       if (d.edge[i] < 5) {
-        const f = (1 - d.edge[i] / 5) ** 2, a = J[i * 3 + 2] * TAU, r = f * 9 * sc * J[i * 3 + 1];
-        x += Math.cos(a) * r; y += Math.sin(a) * r;
+        const f = (1 - d.edge[i] / 5) ** 2, a = J[i * 3 + 2] * TAU, rr = f * 9 * sc * J[i * 3 + 1];
+        x += Math.cos(a) * rr; y += Math.sin(a) * rr;
       }
-      const cs = Math.cos(ROT[j]), sn = Math.sin(ROT[j]);
-      out[i * 2] = b.left - r.left + b.width / 2 + x * cs - y * sn;
-      out[i * 2 + 1] = b.top - r.top + b.height / 2 + x * sn + y * cs;
+      const cs = Math.cos(b.rot), sn = Math.sin(b.rot);
+      out[i * 2] = b.x + x * cs - y * sn;
+      out[i * 2 + 1] = b.y + x * sn + y * cs;
     }
     return out;
   }
@@ -665,7 +670,8 @@ export function createWave(canvas, { reduced = false } = {}) {
         s.h0 = st - vh * (s.enter ?? 0.6);
         const next = states.slice(states.indexOf(s) + 1).find((n) => n.sec !== s.sec);
         const nt = !next ? top + hgt : next.step !== undefined ? next.sec.getBoundingClientRect().top + y + vh * 0.2 : topOf(next);
-        s.h1 = Math.max(s.h0, nt - vh * 0.92);
+        // on a phone the broken line is a long list: its pieces hold until the next chapter is well up the screen
+        s.h1 = Math.max(s.h0, nt - vh * (narrow && s.mode === 5 ? 0.72 : 0.92));
       }
     }
     // her line starts to break almost at once, and is in its five pieces by the time they are read
@@ -853,11 +859,11 @@ export function createWave(canvas, { reduced = false } = {}) {
     const pieces = [A, B].find((s) => s.mode === 5 && s.pc);
     gl.uniform1f(U_.uJoin, pieces ? join : 0);
     if (pieces) {
-      gl.uniform4fv(U_.uPc, pieces.pc); gl.uniform1fv(U_.uPr, ROT);
+      gl.uniform4fv(U_.uPc, pieces.pc); gl.uniform1fv(U_.uPr, pieces.rot);
       // side by side, her line forms again across the middle of its stage; stacked, in the part of the list on screen.
       // It is set as wide as the stage comfortably holds
       const r = pieces === A ? ra : rb, stacked = pieces.p1[0];
-      const k = clamp((r.width * (stacked ? 0.86 : 0.9)) / (2 * pieces.lineR), 0.5, 1.8);
+      const k = clamp((r.width * (stacked ? 0.84 : 0.74)) / (2 * pieces.lineR), 0.5, 2.4);
       gl.uniform3f(U_.uHome, r.width / 2, stacked ? clamp(vh * 0.42 - r.top, 80, r.height - 80) : r.height / 2, k);
     }
     gl.uniform3f(U_.uMouse, mouse.x, mouse.y, reduced ? 0 : mouse.s);

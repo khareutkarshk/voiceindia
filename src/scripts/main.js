@@ -95,33 +95,40 @@ let introTl = null, listen = null;
   listen = createListen($('#listen'), { onStart: () => tl.timeScale(1).restart(true) });
 })();
 
-// ---------- depth: a banknote's rosette, engraved behind her line ----------
+// ---------- depth: a banknote's rosette, engraved behind her line, and again behind her records ----------
 // Bands of sine rings round one centre, each drawn many times a little out of phase, so the lines cross into the
-// lattice printed round a note's watermark. Hairlines in ice and brand blue, faint enough to sit far back.
+// lattice printed round a note's watermark. Hairlines faint enough to sit far back: ice and brand blue on the navy
+// hero, navy and blue on the pale chapter.
 const rosette = $('[data-guilloche]'), depth = $('[data-depth]');
-function engrave() {
-  if (!rosette) return;
-  const h = $('#top').getBoundingClientRect(), l = $('[data-line]').getBoundingClientRect();
-  const R = Math.round(Math.max(h.width * 0.4, h.height * 0.66));
-  const cx = l.left - h.left + l.width / 2, cy = l.top - h.top + l.height * 0.42;
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const rosettes = [
+  { canvas: rosette, host: $('#top'), anchor: $('[data-line]'), size: (h) => Math.max(h.width * 0.4, h.height * 0.66), y: 0.42,
+    inks: () => [css('--color-on-navy'), css('--color-blue')], strength: 1 },
+  { canvas: $('[data-guilloche-records]'), host: $('#problem [data-stage]'), size: (h) => Math.max(h.width, h.height) * 0.56, y: 0.5,
+    inks: () => [css('--color-navy'), css('--color-blue')], strength: innerWidth < 900 ? 0.5 : 0.75 },
+].filter((r) => r.canvas && r.host);
+function engrave({ canvas, host, anchor, size, y, inks, strength }) {
+  const h = host.getBoundingClientRect(), l = (anchor || host).getBoundingClientRect();
+  if (!h.width) return;
+  const R = Math.round(size(h));
+  const cx = l.left - h.left + l.width / 2, cy = l.top - h.top + l.height * y;
   const dpr = Math.min(devicePixelRatio || 1, 2);
-  Object.assign(rosette.style, { left: `${cx - R}px`, top: `${cy - R}px`, width: `${2 * R}px`, height: `${2 * R}px` });
-  rosette.width = rosette.height = Math.round(2 * R * dpr);
-  const c = rosette.getContext('2d'), css = getComputedStyle(document.documentElement);
-  const ice = css.getPropertyValue('--color-on-navy').trim(), blue = css.getPropertyValue('--color-blue').trim();
+  Object.assign(canvas.style, { left: `${cx - R}px`, top: `${cy - R}px`, width: `${2 * R}px`, height: `${2 * R}px` });
+  canvas.width = canvas.height = Math.round(2 * R * dpr);
+  const c = canvas.getContext("2d"), [hair, blue] = inks();
   c.setTransform(dpr, 0, 0, dpr, R * dpr, R * dpr);
   c.lineWidth = 0.6;
   // radius, swing, lobes, copies, ink, strength, and a slower second swing that braids the band
   const bands = [
-    [0.97, 0.022, 72, 6, ice, 0.035],
+    [0.97, 0.022, 72, 6, hair, 0.035],
     [0.82, 0.05, 40, 10, blue, 0.24, 0.018, 8],
-    [0.6, 0.065, 28, 12, ice, 0.03, 0.022, 7],
+    [0.6, 0.065, 28, 12, hair, 0.03, 0.022, 7],
     [0.4, 0.06, 20, 10, blue, 0.2, 0.015, 5],
-    [0.2, 0.05, 12, 8, ice, 0.035],
+    [0.2, 0.05, 12, 8, hair, 0.035],
   ];
   const TAU = Math.PI * 2;
   for (const [r, a, n, copies, ink, alpha, a2 = 0, n2 = 0] of bands) {
-    c.strokeStyle = ink; c.globalAlpha = alpha;
+    c.strokeStyle = ink; c.globalAlpha = alpha * strength;
     const steps = n * 40;
     for (let j = 0; j < copies; j++) {
       const ph = (j / copies) * TAU;
@@ -134,11 +141,11 @@ function engrave() {
     }
   }
 }
-if (rosette) {
-  (document.fonts ? document.fonts.ready : Promise.resolve()).then(engrave);
+rosettes.forEach((r) => {
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => engrave(r));
   let et = 0;
-  new ResizeObserver(() => { clearTimeout(et); et = setTimeout(engrave, 150); }).observe($('#top'));
-}
+  new ResizeObserver(() => { clearTimeout(et); et = setTimeout(() => engrave(r), 150); }).observe(r.host);
+});
 // the pointer tilts the scene: her line leans towards it, the rosette away, so the two read as near and far
 const tilt = { x: 0, y: 0, tx: 0, ty: 0 };
 if (fine && !reduced) addEventListener('pointermove', (e) => { tilt.tx = e.clientX / innerWidth - 0.5; tilt.ty = e.clientY / innerHeight - 0.5; }, { passive: true });
@@ -482,7 +489,8 @@ function sync() {
   // (side by side only: stacked, the pieces re-form in place and never cross her words)
   const said = field && innerWidth >= 900 ? (1 - clamp((scrollY - 40) / 190, 0, 1)).toFixed(3) : '';
   voiceText.forEach((el) => (el.style.opacity = said));
-  if (landing && !field && landStage && landStage.getBoundingClientRect().top < innerHeight * 0.5) land();
+  // and in any case once the desk is well into view (a jump past the hero skips the pieces' flight)
+  if (landing && landStage && landStage.getBoundingClientRect().top < innerHeight * (field ? 0.75 : 0.5)) land();
   const { p0, len } = run(caseSec);
   setStep(clamp(Math.floor(((scrollY - p0) / len) * steps.length - 0.3), 0, steps.length - 1));
   syncLoop();
