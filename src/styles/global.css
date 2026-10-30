@@ -24,6 +24,7 @@
   --color-slate: #475569;
   --color-line: #E3E8F2;
   --color-orange: #FF6B1A;
+  --color-sunrise: #FF9A3C;  /* the brand's Sunrise Orange gradient ends here */
   --color-green: #16A34A;
   --color-on-navy: #C9D6F2;
   --color-dim: #8EA2CF;      /* quiet text on navy */
@@ -100,11 +101,33 @@
 @layer components {
   .wrap{max-width:1440px;margin-inline:auto;padding-left:max(var(--m),env(safe-area-inset-left,0px));padding-right:max(var(--m),env(safe-area-inset-right,0px))}
 
-  /* Buttons: flat, near-square, press feedback */
-  .btn{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:0 26px;border-radius:4px;background:var(--color-orange);color:var(--color-navy);
-    font-weight:700;font-size:var(--text-body);letter-spacing:-.01em;text-decoration:none;transition:transform 160ms var(--ease-out),background-color 160ms ease}
-  .btn:active{transform:scale(.97)}
-  @media (hover:hover) and (pointer:fine){.btn:hover{background:#ff7f3a}}
+  /* Buttons: brand orange, near-square, with only a hairline of light on the top edge so it reads as a solid thing.
+     Hover lifts it a pixel, a press sets it down. */
+  .btn{position:relative;display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:0 26px;border-radius:4px;color:var(--color-navy);
+    background:var(--color-orange);box-shadow:inset 0 1px 0 color-mix(in oklab,var(--color-white) 30%,transparent);
+    font-weight:700;font-size:var(--text-body);letter-spacing:-.01em;text-decoration:none;
+    transition:transform 220ms var(--ease-out),background-color 220ms ease}
+  .btn:active{transform:translateY(1px) scale(.98)}
+  @media (hover:hover) and (pointer:fine){.btn:hover{transform:translateY(-1px);background:color-mix(in oklab,var(--color-orange) 90%,var(--color-sunrise))}
+    .btn:active{transform:translateY(1px) scale(.98)}}
+  /* The hero's action sits in a fine frame, like the border printed round a banknote, and a soft light travels the
+     frame once every eight seconds. On hover the frame draws in close to the button. The pulse of the Voice India mark
+     follows the label: a flat line at rest that breathes into the pulse on hover, focus, and once when it arrives. */
+  @property --sweep{syntax:"<angle>";inherits:false;initial-value:0deg}
+  .btn-voice{gap:12px;padding-right:22px}
+  .btn-voice::before{content:"";position:absolute;inset:-6px;border-radius:8px;padding:1px;pointer-events:none;
+    background:conic-gradient(from var(--sweep),color-mix(in oklab,var(--color-on-navy) 22%,transparent) 0deg 250deg,
+      color-mix(in oklab,var(--color-orange) 80%,transparent) 310deg,color-mix(in oklab,var(--color-sunrise) 100%,transparent) 338deg,
+      color-mix(in oklab,var(--color-on-navy) 22%,transparent) 360deg);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
+    animation:sweep 8s linear infinite;transition:transform 420ms var(--ease-out)}
+  @keyframes sweep{to{--sweep:360deg}}
+  @media (hover:hover) and (pointer:fine){.btn-voice:hover::before{transform:scale(.97,.9)}}
+  .btn-voice svg{width:30px;height:12px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+  .btn-voice .beat{stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 700ms var(--ease-out)}
+  .btn-voice .flat{transition:opacity 220ms ease 80ms}
+  .btn-voice:is(:hover,:focus-visible,.speak) .beat{stroke-dashoffset:0}
+  .btn-voice:is(:hover,:focus-visible,.speak) .flat{opacity:0;transition-delay:0ms}
   .link{font-weight:600;color:var(--color-navy);text-decoration:underline;text-decoration-color:rgba(7,27,73,.3);transition:text-decoration-color 160ms ease}
   @media (hover:hover) and (pointer:fine){.link:hover{text-decoration-color:var(--color-navy)}}
 
@@ -116,6 +139,10 @@
   /* The hero arrives in order, run by main.js with her line: hidden from the first paint (the js class is set in
      the head), and shown after eight seconds whatever happens, so a failed script never hides it for good */
   .js .hero-in{opacity:0;transform:translateY(14px);animation:hero-safe 1ms 8s forwards}
+  /* her line as type: only when particles will not draw it (no script, or main.js gives up waiting) */
+  .js [data-line-type]{opacity:0;transition:opacity 600ms var(--ease-out)}
+  .js.no-field [data-line-type]{opacity:1}
+  .js.has-field [data-line-type]{opacity:0}
   @keyframes hero-safe{to{opacity:1;transform:none}}
   .split-line{display:block}
   /* the mask each line rises out of: tall enough for descenders, with the extra height taken back */
@@ -214,6 +241,8 @@
     .rv .reveal,.rv .fade{clip-path:none;opacity:1;transform:none;transition:none}
     .js .hero-in{opacity:1;transform:none;animation:none}
     .js .step,.js .step[data-active="true"],.case[data-dir="up"] .step:not([data-active="true"]),.js .loop-step,.js .layer-text article{transform:none;transition:opacity 120ms linear}
-    .btn:active{transform:none}
+    .btn:active,.btn:hover{transform:none}
+    .btn-voice .beat,.btn-voice .flat{transition:none}
+    .btn-voice::before{animation:none;transition:none}
   }
 }

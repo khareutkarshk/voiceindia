@@ -39,10 +39,14 @@ uniform float uJoin;     // 0 broken, 1 held back together by the visitor
 uniform vec3 uHome;      // where the joined line forms, in the pieces' stage (x, y), and its scale against the pieces (z)
 varying vec4 vCol;
 
-// her voice: one thin band of grains, moving with how loud she is; still at both ends
-float voiceY(float x, float x0, float x1, float amp) {
+// her voice: one thin band of grains drawn like a recording of speech. A smooth carrier swells and falls in
+// syllables that drift along it, louder where she is speaking (sx, px, as strong as pk), and it is still at both ends
+float voiceY(float x, float x0, float x1, float amp, float sx, float pk, float pw) {
   float u = clamp((x - x0) / max(1., x1 - x0), 0., 1.);
-  return (sin(u * 13. + uTime * 2.1) * .6 + sin(u * 29. - uTime * 3.3) * .25) * 46. * amp * sin(3.14159 * u);
+  float carrier = sin(u * 70. + uTime * 5.) * .6 + sin(u * 43. - uTime * 3.4) * .4;
+  float syllables = pow(.5 + .5 * sin(u * 11. - uTime * 1.6), 2.) * (.55 + .45 * sin(u * 3.7 + uTime * .6));
+  float near = exp(-pow((x - sx) / (pw * 2.5), 2.)) * pk;
+  return carrier * (syllables * amp + near) * 62. * sin(3.14159 * u);
 }
 
 vec3 threadCol(float k, float dark) {
@@ -78,11 +82,17 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
   if (mode > 3.5) {
     // p1 = her line's centre (x, y), its half width, the voice's baseline; p2 = where the voice starts and ends
     // she speaks while the line changes script, so the voice swells with every change
-    float amp = .1 + uIntro.y + .5 * sin(3.14159 * uIntro.z);
+    // a quiet murmur at rest; louder with each word as she first speaks, and a little as each new script arrives
+    float amp = .32 + uIntro.y * .8 + .2 * sin(3.14159 * uIntro.z);
     float vy = p1.w + (st - 3.) * .75 + g * .55;
+    // where she is speaking runs under the words as they are said: as they rise, and as each new script arrives
+    float said = uIntro.x < .999 ? uIntro.x : uIntro.z;
+    float sx = p1.x - p1.z * 1.15 + p1.z * 2.3 * said, pw = max(60., p1.z * .2);
+    // full once as she first speaks; after that only a murmur as each new script arrives
+    float pk = sin(3.14159 * said) * (uIntro.x < .999 ? .8 : .24);
     if (aShard > 4.5) {
       float x = mix(p2.x, p2.y, u);
-      return vec3(R.xy + uTilt * .45 + vec2(x, vy + voiceY(x, p2.x, p2.y, amp)), (.22 + .36 * r1) * uIntro.w * smoothstep(0., .06, u));
+      return vec3(R.xy + uTilt * .45 + vec2(x, vy + voiceY(x, p2.x, p2.y, amp, sx, pk, pw)), (.22 + .36 * r1) * uIntro.w * smoothstep(0., .06, u));
     }
     float xn = clamp((pts.x - p1.x + p1.z) / (2. * p1.z), 0., 1.);
     // the next script arrives from left to right, the way the words are said, each grain lifting as it goes
@@ -93,7 +103,7 @@ vec3 shape(float mode, vec4 R, vec4 p1, vec4 p2, vec2 pts, vec2 alt) {
     // before she has spoken every grain of the line lies in her voice; the words rise out of it in the order said
     float ga = clamp(uIntro.x * 1.5 - xn * .5, 0., 1.);
     ga = 1. - pow(1. - ga, 3.);
-    p = mix(vec2(p.x, vy + voiceY(p.x, p2.x, p2.y, amp)), p, ga);
+    p = mix(vec2(p.x, vy + voiceY(p.x, p2.x, p2.y, amp, sx, pk, pw)), p, ga);
     // once it is said, the line only breathes
     p += vec2(sin(t * .6 + r1 * 6.2832), cos(t * .5 + r2 * 6.2832)) * .45;
     return vec3(R.xy + uTilt + p, mix((.3 + .4 * r1) * uIntro.w, .74 + .26 * r2, ga));
@@ -465,7 +475,7 @@ export function createWave(canvas, { reduced = false } = {}) {
     const font = (px) => `600 ${px}px Anek, Jakarta, sans-serif`;
     sx.font = font(100);
     const m = sx.measureText(L.line), mh = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
-    const size = Math.min((100 * w * 0.94) / m.width, (100 * h * 0.92) / mh);
+    const size = Math.min((100 * w * 0.74) / m.width, (100 * h * 0.8) / mh);
     sx.font = font(size);
     const n = sx.measureText(L.line);
     const at = L.line.indexOf(L.salary), parts = [L.line.slice(0, at), L.salary, L.line.slice(at + L.salary.length)];

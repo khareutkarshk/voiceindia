@@ -77,14 +77,17 @@ let introTl = null, listen = null;
   tl.to(intro, { voice: 1, duration: 0.9, ease: 'power2.out' }, 0)
     .to(intro, { rise: 1, duration: 2.1, ease: 'power2.inOut' }, 0.55);
   // each word she says is a breath of sound through her voice
-  [0.55, 0.9, 1.22, 1.6].forEach((at) => tl.to(intro, { amp: 0.9, duration: 0.14, ease: 'power2.out' }, at)
-    .to(intro, { amp: 0.08, duration: 0.36, ease: 'power2.in' }, at + 0.14));
+  [0.55, 0.9, 1.22, 1.6].forEach((at) => tl.to(intro, { amp: 0.8, duration: 0.22, ease: 'sine.out' }, at)
+    .to(intro, { amp: 0.08, duration: 0.5, ease: 'sine.inOut' }, at + 0.22));
   tl.to(intro, { amp: 0, duration: 0.6 }, 2.2);
   // then what she said is answered: the headline rising out of a mask, then the sentence, the actions,
   // and last the languages it could have been said in
   const h1 = $('#h-hero');
   tl.fromTo(h1, { opacity: 1, y: '0.3em', clipPath: 'inset(0% 0% 100% 0%)' },
     { y: 0, clipPath: 'inset(-20% -2% -20% -2%)', duration: 1.1, ease: 'expo.out' }, 2.2);
+  // once it has arrived, the action says its line once: the pulse draws and lets go
+  const cta = $('.btn-voice');
+  if (cta) tl.call(() => cta.classList.add('speak'), null, 3.35).call(() => cta.classList.remove('speak'), null, 4.6);
   [[1, 2.65], [2, 2.85], [3, 3.3]].forEach(([k, at]) => tl.to(`[data-hero-in="${k}"]`, { opacity: 1, y: 0, duration: 0.9, ease: 'expo.out', stagger: 0.12 }, at));
   // the rosette behind comes up first and quietly, so the screen has depth before anything speaks
   if (depthIn) tl.from(depthIn, { autoAlpha: 0, scale: 0.94, duration: 3.2, ease: 'expo.out' }, -0.3);
@@ -501,10 +504,10 @@ requestAnimationFrame(frame);
 // ---------- the particle layer: loaded after first paint, only where it can run ----------
 function boot() {
   const canvas = $('#field');
-  if (!canvas || (navigator.connection && navigator.connection.saveData)) return;
+  if (!canvas || (navigator.connection && navigator.connection.saveData)) return document.documentElement.classList.add('no-field');
   import('./wave.js').then(({ createWave }) => {
     const f = createWave(canvas, { reduced });
-    if (!f) { canvas.remove(); return; }
+    if (!f) { canvas.remove(); document.documentElement.classList.add('no-field'); return; }
     field = f;
     window.__field = f; // lets the review capture set her language and read the particle state
     document.documentElement.classList.add('has-field');
@@ -517,3 +520,5 @@ function boot() {
   });
 }
 if ('requestIdleCallback' in window) requestIdleCallback(boot, { timeout: 500 }); else setTimeout(boot, 150);
+// her line as type stands in only if the particles have not come after a few seconds (they replace it when they do)
+setTimeout(() => field || document.documentElement.classList.add('no-field'), 4000);

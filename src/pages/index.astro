@@ -207,16 +207,16 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
         <div class="wrap relative z-3 grid min-h-[max(640px,calc(100svh_-_var(--nav)))] grid-rows-[minmax(0,1fr)_auto] pt-[clamp(24px,4vh,48px)] pb-[clamp(56px,8vh,96px)] max-lg:min-h-0 max-lg:pt-8 max-lg:pb-16">
           <!-- Every line in an Indian script on this page is a draft, to be checked by a native speaker before launch. -->
           <figure class="grid content-center" id="voice" aria-label="What a simulated borrower said on her fourth call">
-            <!-- The same words as type stand in where there are no particles. -->
-            <div class="relative h-[clamp(220px,36svh,400px)] max-lg:h-[clamp(130px,32vw,260px)]" data-line>
-              <p class="absolute inset-x-0 top-0 grid h-[80%] place-items-center text-[length:clamp(3rem,1rem_+_8vw,9.5rem)] leading-none font-semibold whitespace-nowrap text-white in-[.has-field]:opacity-0" lang={her.code} data-lang-line>{her.line}</p>
+            <!-- The same words as type stand in where there are no particles: without script, or when they fail to come. -->
+            <div class="relative h-[clamp(190px,30svh,330px)] max-lg:h-[clamp(120px,30vw,240px)]" data-line>
+              <p class="absolute inset-x-0 top-0 grid h-[80%] place-items-center text-[length:clamp(2.5rem,1rem_+_6vw,7rem)] leading-none font-semibold whitespace-nowrap text-white" lang={her.code} data-lang-line data-line-type>{her.line}</p>
             </div>
             <!-- what she said, then the languages it can be said in: the panel of a banknote, set as one line -->
             <figcaption class="mt-[clamp(8px,1.6vh,20px)] grid justify-items-center gap-2 text-center text-small text-dim" data-voice-text data-picker>
               <p class="hero-in text-on-navy" data-hero-in="3">“After my salary comes,” said by a simulated borrower.</p>
               <div class="hero-in flex max-w-[64rem] flex-wrap justify-center gap-x-1 gap-y-1" data-hero-in="3" role="group" aria-label="Choose the language she speaks" data-panel>
                 {LANGS.map((L, i) => (
-                  <button type="button" class="rounded-[3px] px-2 py-1 leading-[1.3] transition-[color,box-shadow] duration-200 ease-out hover:text-white aria-pressed:text-white aria-pressed:shadow-[inset_0_-2px_var(--color-orange)]" data-lang={L.code} aria-pressed={i === 0 ? 'true' : 'false'}><span lang={L.code}>{L.self}</span>{L.code !== 'en' && <span class="sr-only">, {L.name}</span>}</button>
+                  <button type="button" class="rounded-[3px] px-2 py-1 text-[.8125rem] leading-[1.3] transition-[color,box-shadow] duration-200 ease-out hover:text-white aria-pressed:text-white aria-pressed:shadow-[inset_0_-2px_var(--color-orange)]" data-lang={L.code} aria-pressed={i === 0 ? 'true' : 'false'}><span lang={L.code}>{L.self}</span>{L.code !== 'en' && <span class="sr-only">, {L.name}</span>}</button>
                 ))}
               </div>
             </figcaption>
@@ -227,7 +227,7 @@ const stats = [['Outstanding', '₹48,500'], ['Days past due', '23'], ['Language
             <div>
               <p class="hero-in max-w-[40ch] text-lead leading-[1.4] text-on-navy max-sm:text-body" data-hero-in="1">Super Intelligence helps banks and NBFCs hear each overdue borrower, then proposes the next call your team&nbsp;approves.</p>
               <div class="hero-in mt-[clamp(20px,3vh,32px)] flex flex-wrap items-center gap-x-8 gap-y-4" data-hero-in="2">
-                <a class="btn" href="#pilot">Book a demo</a>
+                <a class="btn btn-voice" href="#pilot"><span>Book a demo</span><svg viewBox="0 0 34 14" aria-hidden="true"><path class="flat" d="M1 7h32" /><path class="beat" pathLength="1" d="M1 7h5c.8 0 1 1.6 1.8 1.6S9.2 5.6 10 5.6 12 12 13 12s3.2-10.4 4.4-10.4S18.2 7 19.2 7H33" /></svg></a>
                 <a class="link text-white decoration-white/35 hover:decoration-white" href="#account">Follow one case</a>
                 {hasVoice && <button type="button" class="font-semibold text-white underline decoration-white/35 underline-offset-3 aria-pressed:decoration-orange" id="listen" aria-pressed="false">Hear her</button>}
               </div>
