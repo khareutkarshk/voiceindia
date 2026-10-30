@@ -563,6 +563,24 @@ $$('[data-copy]').forEach((b) => b.addEventListener('click', () => {
   navigator.clipboard?.writeText(b.dataset.copy).then(() => { b.textContent = 'Copied'; setTimeout(() => (b.textContent = 'Copy the address'), 1800); });
 }));
 
+// ---------- her line breaking into the records ----------
+// The tide of the pale chapter swells while the pieces fall; each record takes its piece's weight as it lands (the
+// moment matches wave.js: piece k is down when the mix reaches .1 + (1 + .1k) / 1.55), and the seal answers the last.
+const tide = $('[data-tide]');
+let lastBreak = -1;
+function breakTo(f) {
+  if (f === lastBreak) return;
+  if (tide) tide.style.setProperty('--tide', reduced ? '0' : Math.sin(clamp((f - 0.18) / 0.72, 0, 1) * Math.PI).toFixed(3));
+  if (!reduced && f > lastBreak) {
+    docs.forEach((d) => {
+      const k = +d.dataset.doc, at = Math.min(0.99, 0.1 + (1 + 0.1 * k) / 1.55);
+      if (lastBreak < at && f >= at) { d.classList.remove('catch'); void d.offsetWidth; d.classList.add('catch'); }
+    });
+    if (lastBreak < 0.97 && f >= 0.97 && seal) { seal.classList.remove('pulse'); void seal.offsetWidth; seal.classList.add('pulse'); }
+  }
+  lastBreak = f;
+}
+
 // ---------- one frame: scroll, then everything that depends on it ----------
 const tones = $$('.ch[data-tone], .foot');
 const crests = $$('.crest:not(.crest-light)');
@@ -590,7 +608,7 @@ function sync() {
   // her chapter's words step aside as her line starts to break, so its pieces fall through clear air
   // (only when there are particles to break; side by side only: stacked, the pieces re-form in place)
   const ls = landStage ? landStage.getBoundingClientRect().top / innerHeight : 1;
-  const said = field && innerWidth >= 900 ? clamp((ls - 0.7) / 0.22, 0, 1).toFixed(3) : '';
+  const said = field && innerWidth >= 900 ? clamp((ls - 0.8) / 0.12, 0, 1).toFixed(3) : '';
   voiceText.forEach((el) => (el.style.opacity = said));
   // the core bursts across the first screen: its light flares, and the claim is thrown up and away with it
   const burst = reduced ? 0 : clamp((scrollY - innerHeight * 0.02) / (innerHeight * 0.7), 0, 1);
@@ -616,6 +634,7 @@ function frame(t) {
     field.setIntro(listen ? { ...intro, amp: Math.max(intro.amp, listen.level()) } : intro);
     const r = field.render(t);
     if (landing && r && (!['hero', 'voice'].includes(r.a.name) || (r.b.name === 'scatter' && r.f > 0.85))) land();
+    if (r) breakTo(r.a.name === 'voice' && r.b.name === 'scatter' ? r.f : r.a.name === 'voice' || r.a.name === 'hero' ? 0 : 1);
   }
   parallax();
   desk();

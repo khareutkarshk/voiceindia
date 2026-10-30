@@ -304,7 +304,7 @@ void main() {
   // the core giving way to her line: it draws in, then bursts, and the grains are caught by her words
   bool burst = uModeA > 5.5 && uModeB > 3.5 && uModeB < 4.5;
   float e = words ? clamp(uMix * 1.35 - aSeed2.z * .35, 0., 1.)
-    : shatter ? clamp(uMix * 1.4 - aShard * .1, 0., 1.)
+    : shatter ? clamp((uMix - .1) * 1.55 - aShard * .1, 0., 1.)
     : burst ? clamp((uMix - .12) * 1.5 - aSeed.w * .3, 0., 1.)
     : clamp(uMix * 1.7 - (aSeed.y * .55 + aSeed2.z * .15), 0., 1.);
   e = e < .5 ? 4. * e * e * e : 1. - pow(-2. * e + 2., 3.) / 2.;
@@ -319,6 +319,14 @@ void main() {
     A.xy = cc + (A.xy - cc) * (1. - .42 * hold);
     A.z = min(1., A.z * (1. + hold));
   }
+  if (shatter && aShard < 4.5) {
+    // first her line cracks: it trembles, and its pieces pull apart at the cuts before they are torn away
+    vec2 pa = uLc[0];
+    for (int k = 1; k < 5; k++) if (abs(aShard - float(k)) < .5) pa = uLc[k];
+    vec2 away = pa - uP1A.xy;
+    float gap = smoothstep(0., .1, uMix), shake = smoothstep(0., .04, uMix) * (1. - smoothstep(.08, .12, uMix));
+    A.xy += away / max(length(away), 1.) * 16. * gap + vec2(sin(uTime * 53. + aSeed.z * 40.), cos(uTime * 47. + aSeed.w * 40.)) * 1.8 * shake;
+  }
   vec2 dir = B.xy - A.xy;
   // far apart: dissolve out and back in rather than fly across the words between
   float far = smoothstep(uFar, uFar + .5, length(dir) / uRes.y);
@@ -331,7 +339,6 @@ void main() {
   float fade = mix(1., abs(1. - 2. * e), far);
   // in the air a piece thins, and gathers again as it lands; her voice stays where it was and fades
   if (shatter) fade *= 1. - .18 * sin(e * 3.14159);
-  if (shatter && aShard > 4.5) { p = A.xy; fade = 1. - smoothstep(0., .22, uMix); }
 
   vec2 mid = (A.xy + B.xy) * .5;
   vec2 cur = vec2(sin(mid.y * .0045 + uTime * .3), cos(mid.x * .004 - uTime * .25));
@@ -356,6 +363,18 @@ void main() {
     p = pv + vec2(d.x * cs - d.y * sn, d.x * sn + d.y * cs);
     p.y -= sw * (46. + aShard * 12.);
     p += vec2(aSeed.z - .5, aSeed.w - .5) * pow(sw, 1.5) * (20. + 70. * aSeed2.z * aSeed2.z);
+  } else if (shatter) {
+    // her voice snaps: its grains are torn loose and stream down behind the pieces as dust, thinning as they land
+    float kk = floor(aSeed.z * 5.);
+    vec2 tg = uPc[0].xy, tp = uPo[0];
+    for (int k = 1; k < 5; k++) if (abs(kk - float(k)) < .5) { tg = uPc[k].xy; tp = uPo[k]; }
+    float ev = clamp((uMix - .06) * 1.5 - aSeed.w * .4 - kk * .08, 0., 1.);
+    float es = ev * ev * (3. - 2. * ev), s2 = sin(es * 3.14159);
+    p = mix(A.xy, uRectB.xy + tg + tp + (vec2(aSeed2.z, aSeed.w) - .5) * 90., es);
+    p += vec2(sin(p.y * .02 + uTime * 1.3 + aSeed.z * 9.), cos(p.x * .015 - uTime + aSeed.w * 9.)) * s2 * 38.;
+    p.y -= s2 * 40.;
+    fade = 1. - pow(es, 1.6);
+    B.z = A.z * 1.4;
   } else if (lineA || lineB) p.y += (e < .5 ? -1. : 1.) * sw * 16.;
   if (words) {
     p += vec2(sin(aSeed.z * 31. + uTime * .7), cos(aSeed.w * 27. + uTime * .6)) * sw * 26.;

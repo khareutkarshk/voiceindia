@@ -146,6 +146,13 @@
   [data-joined="true"] .doc{opacity:.38;scale:.9;filter:saturate(.6);translate:calc(var(--ax) * 150px) calc(var(--ay) * 70px)}
   [data-joined="true"] .doc:has(.lit){opacity:.85}
   @media (max-width:899px){.doc-head span{display:none}}
+  /* the tide: it swells from its foot as her line breaks */
+  .tide{transform-origin:50% 100%;transform:scaleY(calc(1 + var(--tide,0) * 2.6))}
+  /* a record grows into place as its piece arrives, and gives under it for a moment, like paper taking a stamp */
+  .rv .land{scale:.94;transition:opacity 700ms var(--ease-out) var(--d,0ms),scale 900ms var(--ease-out) var(--d,0ms)}
+  .rv .land.in{scale:1}
+  .doc.catch{animation:catch 620ms var(--ease-out)}
+  @keyframes catch{0%{scale:1}22%{scale:.955}100%{scale:1}}
   /* the rosette under the desk answers once, when her line closes */
   [data-seal].pulse{animation:seal 1.4s var(--ease-out)}
   @keyframes seal{0%{scale:1;opacity:1}30%{scale:1.035;opacity:1}100%{scale:1;opacity:1}}
@@ -278,5 +285,7 @@
     .btn:active,.btn:hover{transform:none}
     .btn-voice .beat,.btn-voice .flat{transition:none}
     .micro-row{animation:none}
+    .tide{transform:none}
+    .doc.catch{animation:none}
   }
 }
